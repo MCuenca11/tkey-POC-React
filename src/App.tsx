@@ -218,19 +218,19 @@ const App = function App() {
 
   const loginUsingLocalShare = async () => {
     try {
-      setConsoleText("Logging in");
+      setConsoleText("Logging In With Social Provider...");
       await triggerLogin();
       await tKey.initialize();
 
-      appendConsoleText("Adding local webstorage share");
+      appendConsoleText("Getting The Local Webstorage Share...");
       const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
       await webStorageModule.inputShareFromWebStorage();
 
       const indexes = tKey.getCurrentShareIndexes();
-      appendConsoleText("Total number of available shares: " + indexes.length);
+      appendConsoleText("Total Number Of Available Shares: " + indexes.length);
 
       const reconstructedKey = await tKey.reconstructKey();
-      appendConsoleText("tkey: " + reconstructedKey.privKey.toString("hex"));
+      appendConsoleText("Here's Your Private Key: " + reconstructedKey.privKey.toString("hex"));
     } catch (error) {
       console.error(error, "caught");
     }
@@ -239,7 +239,7 @@ const App = function App() {
   const reconstructKey = async () => {
     try {
       console.log("Reconstructing Key");
-      setConsoleText("Reconstucting key");
+      setConsoleText("Reconstructing key");
       let reconstructedKey = await tKey.reconstructKey();
       appendConsoleText(reconstructedKey.privKey);
     } catch (error) {
@@ -253,15 +253,15 @@ const App = function App() {
   };
 
   const generateNewShareWithPassword = async () => {
-    setConsoleText("Generating new share with password");
-    swal("Enter password (>10 characters)", {
+    setConsoleText("Generating new share with Visa Guide ID");
+    swal("Enter password (>5 characters)", {
       content: "input" as any,
     }).then(async (value) => {
-      if (value.length > 10) {
-        await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(value, "whats your password?");
-        appendConsoleText("Successfully generated new share with password.");
+      if (value.length > 5) {
+        await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(value, "What's your Visa Guide ID?");
+        appendConsoleText("Successfully generated new share with Visa Guide ID!");
       } else {
-        swal("Error", "Password must be > 10 characters", "error");
+        swal("Error", "Password must be > 5 characters", "error");
       }
     });
     await getTKeyDetails();
@@ -269,20 +269,20 @@ const App = function App() {
 
   const inputShareFromSecurityQuestions = async () => {
     setConsoleText("Importing Share from Security Question");
-    swal("What is your password ?", {
+    swal("What is your Visa Guide ID?", {
       content: "input" as any,
     }).then(async (value) => {
-      if (value.length > 10) {
+      if (value.length > 5) {
         await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(value);
-        appendConsoleText("Imported Share using the security question");
+        appendConsoleText("Imported Share using Visa Guide ID");
       } else {
-        swal("Error", "Password must be > 10 characters", "error");
+        swal("Error", "Password must be > 5 characters", "error");
       }
     });
   };
 
   const checkShareRequests = async () => {
-    consoleText("Checking Share Reuqests");
+    consoleText("Checking Share Requests");
     try {
       const result = await (tKey.modules.shareTransfer as ShareTransferModule).getShareTransferStore();
       const requests = await (tKey.modules.shareTransfer as ShareTransferModule).lookForRequests();
@@ -341,15 +341,20 @@ const App = function App() {
   return (
     <div className="showcase">
       <div className="showcase-top">
-        <img src="https://web3auth.io/images/web3auth-logo---Dark-1.svg" alt="Web3 Auth Logo" />
+        <img src="https://imgs.search.brave.com/hROsXsGVks4so9hB1OkgaXBlme0UsyvHmF_69c4m720/rs:fit:1024:416:1/g:ce/aHR0cHM6Ly90aGVz/dHJhd2dyb3VwLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAx/OS8wNi9WaXNhLWxv/Z28tMTAyNHg0MTYu/cG5n" alt="Visa Logo" />
       </div>
       <div className="showcase-content">
         <Row className="center">
           <Col>
-            <h4>Select Verifier</h4>
+            <h4>Select a Verifier</h4>
           </Col>
           <Col>
             <ul>
+            <li>
+                <span onClick={() => setAuthVerifier("google")}>
+                  <i className={"fa fa-google " + (authVerifier === "google" ? "selected" : "")}></i>
+                </span>
+              </li>
               <li>
                 <span onClick={() => setAuthVerifier("facebook")}>
                   <i className={"fa fa-facebook " + (authVerifier === "facebook" ? "selected" : "")}></i>
@@ -365,11 +370,6 @@ const App = function App() {
                   <i className={"fa fa-linkedin " + (authVerifier === "linkedin" ? "selected" : "")}></i>
                 </span>
               </li>
-              <li>
-                <span onClick={() => setAuthVerifier("google")}>
-                  <i className={"fa fa-google " + (authVerifier === "google" ? "selected" : "")}></i>
-                </span>
-              </li>
             </ul>
           </Col>
         </Row>
@@ -382,7 +382,7 @@ const App = function App() {
             </Row>
             <Row>
               <Col className="custom-btn" onClick={loginUsingLocalShare}>
-                Login
+                Login With Device/Provider
               </Col>
             </Row>
             <Row>
@@ -404,7 +404,7 @@ const App = function App() {
           <Col>
             <Row>
               <Col>
-                <h1>Shares</h1>
+                <h1>Using Visa Guide</h1>
               </Col>
             </Row>
             <Row>
@@ -419,12 +419,12 @@ const App = function App() {
             </Row>
             <Row>
               <Col className="custom-btn" onClick={generateNewShareWithPassword}>
-                Create a new password
+                Initialize Visa Guide ID
               </Col>
             </Row>
             <Row>
               <Col className="custom-btn" onClick={inputShareFromSecurityQuestions}>
-                Input password share
+                Input Visa Guide ID
               </Col>
             </Row>
           </Col>
