@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 
  
 
-import logo from "./logo.svg";
-
 import "./App.css";
 
 import ThresholdKey from "@tkey/default";
@@ -22,9 +20,13 @@ import Row from "react-bootstrap/Row";
 
 import Col from "react-bootstrap/Col";
 
+import Table from "react-bootstrap/Table";
+
 import popup from "sweetalert";
 
-import { debug } from "console";
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic, mnemonicToEntropy } from "bip39";
+
+import HDKey from "hdkey";
 
  
 
@@ -240,13 +242,33 @@ const App = function App() {
 
  
 
-  const [threshold, setThreshold] = useState<any>(2);
+  const [derivedAccount, setDerivedAccount] = useState<any>("Output will appear here");
 
-  const [total, setTotal] = useState<any>(3);
+  const [mnemonics, setMnemonics] = useState<any>("");
 
-  const [shareDetails, setShareDetails] = useState<string>("");
+  const [bip39Seed, setBIP39Seed] = useState<any>("");
+
+  const [entropy, setEntropy] = useState<any>("");
+
+  const [hdKey, setHDKey] = useState<any>(null);
+
+  const [derivationPath, setDerivationPath] = useState<any>("m/44'/60'/0'/0");
+
+  const [privateKey, setPrivateKey] = useState<any>("");
+
+  const [publicKey, setPublicKey] = useState<any>("");
+
+  const [privateExtendedKey, setPrivateExtendedKey] = useState<any>("");
+
+  const [publicExtendedKey, setPublicExtendedKey] = useState<any>("");
+
+  const [shareDetails, setShareDetails] = useState<string>("0x0");
 
   const [shareToggle, setShareToggle] = useState<string>("split");
+
+  const [total, setTotal] = useState<number>(3);
+
+  const [threshold, setThreshold] = useState<number>(2);
 
  
 
@@ -264,7 +286,7 @@ const App = function App() {
 
   useEffect(() => {
 
-    const init = async () => {
+   const init = async () => {
 
       // Init Service Provider
 
@@ -288,7 +310,7 @@ const App = function App() {
 
  
 
-  // Function that uses the device and guide shares to reconstruct the key (Doesn't Work Right Now)
+  // Function that uses the device and Visa shares to reconstruct the key (Doesn't Work Right Now)
 
   const initializeAndReconstruct = async () => {
 
@@ -301,8 +323,6 @@ const App = function App() {
         return;
 
       }
-
-      console.log('hi');
 
       const details = await tKey.initialize();
 
@@ -346,11 +366,15 @@ const App = function App() {
 
           try {
 
-            tKey._initializeNewKey();
+            // Do wee need to make a new key?
+
+            // tKey._initializeNewKey();
 
             await (tKey.modules.webStorage as WebStorageModule).inputShareFromWebStorage();
 
             requiredShares--;
+
+            appendConsoleText("Successfully Acquired Device Share!");
 
           } catch (err) {
 
@@ -360,7 +384,9 @@ const App = function App() {
 
         } else if (curr.module === "securityQuestions") {
 
-          throw new Error("Password required");
+          await getVisaGuideShare();
+
+          appendConsoleText("Successfully Acquired Visa Guide Share!");
 
         }
 
@@ -368,7 +394,7 @@ const App = function App() {
 
         if (shareDescriptions.length === 0 && requiredShares > 0) {
 
-          throw new Error("New key assign is required.");
+          throw new Error("URGENT: Need To Refresh Lost Share");
 
         }
 
@@ -383,6 +409,8 @@ const App = function App() {
       setConsoleText(consoleTextCopy);
 
     } catch (error) {
+
+      setConsoleText("Failed To Login");
 
       console.error(error, "caught");
 
@@ -426,11 +454,51 @@ const App = function App() {
 
  
 
+      // const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerHybridAggregateLogin({
+
+      //   singleLogin: {
+
+      //     typeOfLogin,
+
+      //     verifier,
+
+      //     clientId,
+
+      //     jwtParams,
+
+      //   },
+
+      //   aggregateLoginParams: {
+
+      //     aggregateVerifierType: "single_id_verifier",
+
+      //     verifierIdentifier: "tkey-google",
+
+      //     subVerifierDetailsArray: [
+
+      //       {
+
+      //         clientId: "221898609709-obfn3p63741l5333093430j3qeiinaa8.apps.googleusercontent.com",
+
+      //         typeOfLogin: "google",
+
+      //         verifier: "torus",
+
+      //       },
+
+      //     ],
+
+      //   }
+
+      // });
+
+ 
+
       // setConsoleText(loginResponse);
 
     } catch (error) {
 
-      appendConsoleText("Could Not Get The Social Provider Share")
+      setConsoleText("Could Not Get The Social Provider Share")
 
       console.log(error);
 
@@ -440,41 +508,7 @@ const App = function App() {
 
  
 
-  // // This was the base function for creating a tkey with the device share and provider share. It's no longer used
-
-  // const initializeNewKey = async () => {
-
-  //   try {
-
-  //     setConsoleText("Initializing a New Key Using Device and Provider...");
-
-  //     await triggerSocialProviderLogin();
-
-  //     await tKey.initialize();
-
-  //     const res = await tKey._initializeNewKey({ initializeModules: true });
-
-  //     console.log("response from _initializeNewKey", res);
-
-  //     appendConsoleText("Here's Your Private Key:");
-
-  //     appendConsoleText(res.privKey);
-
-  //     appendConsoleText("Here's Some Extra Info:");
-
-  //     appendConsoleText(res);
-
-  //   } catch (error) {
-
-  //     setConsoleText("Failed To Initialize The Key (Most Likely An Error With The Social Login");
-
-  //     console.error(error, "caught");
-
-  //   }
-
-  // };
-
- 
+  // Initializes key using social provider and device and then adds on security question share.
 
   const initializeTkeyUsing3Shares = async () => {
 
@@ -492,21 +526,25 @@ const App = function App() {
 
       console.log("response from _initializeNewKey", res);
 
-      appendConsoleText("Generating New Share With Visa Guide ID...");
+      setShareDetails(res.privKey.toString("hex"));
 
       await generateNewShareWithVisaGuide();
 
-      appendConsoleText("Successfully Generated New Share With Visa Guide ID!");
+      // appendConsoleText("Successfully Generated New Share With Visa Guide ID!");
 
-      appendConsoleText("Here's Your Private Key:");
+      // appendConsoleText("Here's Your Private Key:");
 
-      appendConsoleText(res.privKey);
+      // appendConsoleText(res.privKey);
 
-      appendConsoleText("Here's Some Extra Info:");
+      // setShareToggle("split");
 
-      appendConsoleText(res);
+      // appendConsoleText("Here's Some Extra Info:");
+
+      // appendConsoleText(res);
 
     } catch (error) {
+
+      appendConsoleText("Failed To Inititialize New TKey");
 
       console.error(error, "caught");
 
@@ -544,7 +582,7 @@ const App = function App() {
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      appendConsoleText(indexes);
+      // appendConsoleText(indexes);
 
       appendConsoleText("Number Of Acquired Shares: " + indexes.length);
 
@@ -558,7 +596,7 @@ const App = function App() {
 
     } catch (error) {
 
-      appendConsoleText("Failed To Login");
+      setConsoleText("Failed To Login");
 
       console.error(error, "caught");
 
@@ -590,7 +628,7 @@ const App = function App() {
 
       appendConsoleText("Successfully Acquired Device Share!");
 
-      await inputShareFromSecurityQuestions();
+      await getVisaGuideShare();
 
       appendConsoleText("Successfully Acquired Visa Guide Share!");
 
@@ -600,7 +638,7 @@ const App = function App() {
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      appendConsoleText(indexes);
+      // appendConsoleText(indexes);
 
       appendConsoleText("Number Of Acquired Shares: " + indexes.length);
 
@@ -614,7 +652,7 @@ const App = function App() {
 
     } catch (error) {
 
-      appendConsoleText("Failed To Login");
+      setConsoleText("Failed To Login");
 
       console.error(error, "caught");
 
@@ -636,7 +674,7 @@ const App = function App() {
 
       appendConsoleText("Successfully Acquired Social Provider Share!");
 
-      await inputShareFromSecurityQuestions();
+      await getVisaGuideShare();
 
       appendConsoleText("Successfully Acquired Visa Guide Share!");
 
@@ -646,7 +684,7 @@ const App = function App() {
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      appendConsoleText(indexes);
+      // appendConsoleText(indexes);
 
       appendConsoleText("Number Of Acquired Shares: " + indexes.length);
 
@@ -660,7 +698,7 @@ const App = function App() {
 
     } catch (error) {
 
-      appendConsoleText("Failed To Login");
+      setConsoleText("Failed To Login");
 
       console.error(error, "caught");
 
@@ -700,6 +738,12 @@ const App = function App() {
 
       setConsoleText("Tkey Details:");
 
+      appendConsoleText("Private Key:");
+
+      appendConsoleText("0x" + tKey.privKey.toString('hex'));
+
+      appendConsoleText("More Info:");
+
       appendConsoleText(tKey.getKeyDetails());
 
     } catch (error) {
@@ -714,15 +758,29 @@ const App = function App() {
 
   const generateShares = () => {
 
-    if (shareToggle === "split") {
+    var re = /[0-9A-Fa-f]*/g;
 
-      setShareToggle("combine");
+    var keyToBeSplit = shareDetails.replaceAll('"', "");
+
+    if (keyToBeSplit.substring(0, 2) === "0x") {
+
+      keyToBeSplit = keyToBeSplit.substring(2);
 
     }
 
-    var shares = window.secrets.share(shareDetails.replaceAll('"', ""), parseInt(total), parseInt(threshold));
+    if (re.test(keyToBeSplit)) {
 
-    setShareDetails(shares.join("\n"));
+      setShareToggle("combine");
+
+      var shares = window.secrets.share(keyToBeSplit, total, threshold);
+
+      setShareDetails(shares.join("\n"));
+
+    } else {
+
+      popup("Please enter a valid hexadecimal number");
+
+    }
 
   };
 
@@ -744,7 +802,7 @@ const App = function App() {
 
  
 
-  const deleteShare = async () => {
+  const deleteDeviceShare = async () => {
 
     try {
 
@@ -752,19 +810,191 @@ const App = function App() {
 
       // appendConsoleText(tKey.getKeyDetails());
 
-      setConsoleText("Deleting a Share...");
+      setConsoleText("Deleting Device Share...");
 
-      await tKey.deleteShare;
+      const indexes = tKey.getCurrentShareIndexes();
 
-      setConsoleText("Share Deleted!");
+      appendConsoleText(tKey.shares);
+
+      appendConsoleText(indexes);
+
+      await tKey.deleteShare(indexes[1]);
+
+      appendConsoleText(indexes);
+
+      appendConsoleText("Device Share Deleted!");
 
     } catch (error) {
 
-      setConsoleText("Failed Get The Key Details. May Have To Login/Reconstruct It First");
+      setConsoleText("Failed To Delete Device Share");
 
     }
 
   };
+
+ 
+
+  const deleteVisaShare = async () => {
+
+    try {
+
+      // setConsoleText("Tkey Details:");
+
+      // appendConsoleText(tKey.getKeyDetails());
+
+      setConsoleText("Deleting Visa Guide Share...");
+
+      const indexes = tKey.getCurrentShareIndexes();
+
+      await tKey.deleteShare(indexes[2]);
+
+      setConsoleText("Visa Share Deleted!");
+
+    } catch (error) {
+
+      appendConsoleText("Failed To Delete Visa Share");
+
+    }
+
+  };
+
+ 
+
+  const deleteProviderShare = async () => {
+
+    try {
+
+      // setConsoleText("Tkey Details:");
+
+      // appendConsoleText(tKey.getKeyDetails());
+
+      setConsoleText("Deleting Social Provider Share...");
+
+      const indexes = tKey.getCurrentShareIndexes();
+
+      await tKey.deleteShare(indexes[3]);
+
+      setConsoleText("Social Provider Share Deleted!");
+
+    } catch (error) {
+
+      setConsoleText("Failed To Delete Social Provider Share");
+
+    }
+
+  };
+
+ 
+
+  const generateNewShare = async () => {
+
+    try {
+
+      setConsoleText("Generating New Share...");
+
+      const result = await tKey.generateNewShare();
+
+      appendConsoleText(result.newShareStores);
+
+      appendConsoleText("Successfully Generated New Share!");
+
+      appendConsoleText(result);
+
+    } catch (error) {
+
+      setConsoleText("Failed To Generate New Share");
+
+    }
+
+  }
+
+ 
+
+  const generateNewDeviceShare = async () => {
+
+    try {
+
+      setConsoleText("Generating New Share...");
+
+      const indexes = tKey.getCurrentShareIndexes();
+
+      await tKey.deleteShare(indexes[3]);
+
+      const result = await tKey.generateNewShare();
+
+      appendConsoleText("1");
+
+      // const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
+
+      // appendConsoleText("2");
+
+      // const shareStore = webStorageModule.getDeviceShare();
+
+      appendConsoleText(result.newShareStores);
+
+      appendConsoleText(result.newShareIndex);
+
+      // webStorageModule.storeDeviceShare(result.newShareStores[1]);
+
+      appendConsoleText("3");
+
+      // appendConsoleText(result);
+
+      // const shareStore = await result.newShareStores;
+
+      // appendConsoleText("share stores");
+
+      // appendConsoleText(shareStore);
+
+ 
+
+      tKey.storeDeviceShare(result.newShareStores[1]);
+
+      // First get your device share using
+
+      appendConsoleText("Successfully Generated New Device Share!");
+
+    } catch (error) {
+
+      appendConsoleText("Failed To Generate New Device Share");
+
+    }
+
+  }
+
+ 
+
+    // Helper function used to give guide a share of the key.
+
+    const generateNewShareWithVisaGuide = async () => {
+
+      appendConsoleText("Generating New Share With Visa Guide ID...");
+
+      popup("What's Your Visa Guide ID? (At Least 5 Characters)", {
+
+        content: "input" as any,
+
+      }).then(async (value) => {
+
+        if (value.length >= 5) {
+
+          await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(value, "What's Your Visa Guide ID?");
+
+          setConsoleText("Successfully Generated Share With Visa Guide ID!");
+
+        } else {
+
+          popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
+
+          setConsoleText("Failed to Generate Share With Visa Guide ID");
+
+        }
+
+      });
+
+      // await getTKeyDetails();
+
+    };
 
  
 
@@ -772,9 +1002,49 @@ const App = function App() {
 
     try {
 
-      setConsoleText("Tkey Details:");
+      setConsoleText("Refreshing Shares...");
 
-      appendConsoleText(tKey.getKeyDetails());
+      const pubPoly = tKey.metadata.getLatestPublicPolynomial();
+
+      appendConsoleText("Public Polynomial:");
+
+      appendConsoleText(pubPoly);
+
+      const previousPolyID = pubPoly.getPolynomialID();
+
+      appendConsoleText("Previous Polynomial ID:");
+
+      appendConsoleText(previousPolyID);
+
+      const existingShareIndexes = tKey.metadata.getShareIndexesForPolynomial(previousPolyID);
+
+      appendConsoleText("Existing Share Indexes:");
+
+      appendConsoleText(existingShareIndexes);
+
+      await tKey._refreshShares(2, existingShareIndexes, previousPolyID);
+
+      appendConsoleText("Successfully Refreshed The Shares! Here's Some Info:");
+
+      appendConsoleText("Public Polynomial:");
+
+      appendConsoleText(pubPoly);
+
+ 
+
+      appendConsoleText("Previous Polynomial ID:");
+
+      appendConsoleText(previousPolyID);
+
+ 
+
+      appendConsoleText("Existing Share Indexes:");
+
+      appendConsoleText(existingShareIndexes);
+
+ 
+
+      // Need to make new key? Want the same private key though
 
     } catch (error) {
 
@@ -786,31 +1056,87 @@ const App = function App() {
 
  
 
-  // Helper function used to give guide a share of the key.
+  const generateMnemonics = () => {
 
-  const generateNewShareWithVisaGuide = async () => {
+    if (!validateMnemonic(mnemonics)) {
 
-    appendConsoleText("Generating New Share With Visa Guide ID...");
+      popup("Incorrect Mnemonic", "", "error");
 
-    popup("What's Your Visa Guide ID? (At Least 5 Characters)", {
+      setBIP39Seed("Incorrect Mnemonic");
 
-      content: "input" as any,
+      setEntropy("Incorrect Mnemonic");
 
-    }).then(async (value) => {
+      setPublicKey("Incorrect Mnemonic");
 
-      if (value.length >= 5) {
+      setPublicExtendedKey("Incorrect Mnemonic");
 
-        await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(value, "What's Your Visa Guide ID?");
+      setPrivateKey("Incorrect Mnemonic");
 
-      } else {
+      setPrivateExtendedKey("Incorrect Mnemonic");
 
-        popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
+    } else {
 
-      }
+      const bip39Seed = mnemonicToSeedSync(mnemonics).toString("hex");
 
-    });
+      const bip39entropy = mnemonicToEntropy(mnemonics);
 
-    await getTKeyDetails();
+ 
+
+      setBIP39Seed(bip39Seed);
+
+      setEntropy(bip39entropy);
+
+      const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
+
+      setPublicKey(hd.publicKey.toString("hex"));
+
+      setPublicExtendedKey(hd.publicExtendedKey);
+
+      setPrivateKey(hd.privateKey.toString("hex"));
+
+      setPrivateExtendedKey(hd.privateExtendedKey);
+
+      setHDKey(hd);
+
+    }
+
+  };
+
+  const deriveAccount = () => {
+
+    const childHd = hdKey.derive(derivationPath);
+
+    setDerivedAccount("Private Key " + childHd.privateKey.toString("hex") + "\nPublic Key " + childHd.publicKey.toString("hex"));
+
+  };
+
+ 
+
+  const generateMnemonicsRandom = () => {
+
+    const bipMnemonic = generateMnemonic();
+
+    const bip39Seed = mnemonicToSeedSync(bipMnemonic).toString("hex");
+
+    const bip39entropy = mnemonicToEntropy(bipMnemonic);
+
+    setMnemonics(bipMnemonic);
+
+    setBIP39Seed(bip39Seed);
+
+    setEntropy(bip39entropy);
+
+    const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
+
+    setPublicKey(hd.publicKey.toString("hex"));
+
+    setPublicExtendedKey(hd.publicExtendedKey);
+
+    setPrivateKey(hd.privateKey.toString("hex"));
+
+    setPrivateExtendedKey(hd.privateExtendedKey);
+
+    setHDKey(hd);
 
   };
 
@@ -818,7 +1144,7 @@ const App = function App() {
 
   // Helper function to return the guide share if the inputted guide ID is correct.
 
-  const inputShareFromSecurityQuestions = async () => {
+  const getVisaGuideShare = async () => {
 
     appendConsoleText("Importing Share from Visa Guide...");
 
@@ -848,7 +1174,7 @@ const App = function App() {
 
   const checkShareRequests = async () => {
 
-    consoleText("Checking Share Requests");
+    setConsoleText("Checking Share Requests");
 
     try {
 
@@ -863,6 +1189,8 @@ const App = function App() {
       console.log("Share Transfer Store", result);
 
     } catch (err) {
+
+      setConsoleText("Failed to Check Share Requests");
 
       console.log(err);
 
@@ -886,6 +1214,8 @@ const App = function App() {
 
     } catch (err) {
 
+      setConsoleText("Failed to Reset Share Requests");
+
       console.log(err);
 
     }
@@ -905,6 +1235,8 @@ const App = function App() {
       appendConsoleText(result);
 
     } catch (err) {
+
+      setConsoleText("Failed to Request Share");
 
       console.error(err);
 
@@ -932,7 +1264,7 @@ const App = function App() {
 
       } catch (err) {
 
-        console.error("No on device share found. Generating a new share");
+        console.error("No Device Share Found. Generating a New Share");
 
         const newShare = await tKey.generateNewShare();
 
@@ -948,9 +1280,11 @@ const App = function App() {
 
       // await this.tbsdk.modules.shareTransfer.deleteShareTransferStore(requests[0]) // delete old share requests
 
-      appendConsoleText("Approved Share Transfer request");
+      appendConsoleText("Approved Share Transfer Request");
 
     } catch (err) {
+
+      setConsoleText("Failed to Approve Share Request");
 
       console.error(err);
 
@@ -970,13 +1304,47 @@ const App = function App() {
 
         </div>
 
+          <Row>
+
+              <Col>
+
+                <br></br>
+
+            </Col>
+
+          </Row>
+
+        <div className="showcase-content">
+
+          <Row className="center">
+
+              <Col>
+
+                <h1>This is a POC for Integrating Visa Guide With TKey</h1>
+
+              </Col>
+
+          </Row>
+
+        </div>
+
+          <Row>
+
+              <Col>
+
+                <br></br>
+
+            </Col>
+
+          </Row>
+
         <div className="showcase-content">
 
           <Row className="center">
 
             <Col>
 
-              <h4>This is a POC for Integrating Visa Guide With TKey. To Begin, Select a Social Verifier:</h4>
+              <h1>To Begin, Select a Social Verifier And Then Create New Key or Login:</h1>
 
             </Col>
 
@@ -1078,7 +1446,7 @@ const App = function App() {
 
                 <Col>
 
-                  <h1>Create/Get Private Key</h1>
+                  <h1>Create/Get Private Key Or Login</h1>
 
                 </Col>
 
@@ -1104,7 +1472,7 @@ const App = function App() {
 
               </Row> */}
 
-              <Row>
+              {/* <Row>
 
                 <Col className="custom-btn" onClick={reconstructKey}>
 
@@ -1112,13 +1480,13 @@ const App = function App() {
 
                 </Col>
 
-              </Row>
+              </Row> */}
 
               <Row>
 
                 <Col className="custom-btn" onClick={getTKeyDetails}>
 
-                  Get TKey Details
+                  Get Private Key/Details
 
                 </Col>
 
@@ -1126,33 +1494,11 @@ const App = function App() {
 
               <Row>
 
-                <Col className="custom-btn" onClick={deleteShare}>
+                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}> */}
 
-                  Delete Share (Doesn't Work)
+                <Col className="custom-btn" onClick={initializeAndReconstruct}>
 
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={refreshShares}>
-
-                  Refresh Share (Doesn't Work)
-
-                </Col>
-
-              </Row>
-
-            </Col>
-
-            <Col>
-
-              <Row>
-
-                <Col>
-
-                  <h1>Login</h1>
+                  Login With Device + Visa
 
                 </Col>
 
@@ -1160,41 +1506,9 @@ const App = function App() {
 
               <Row>
 
-                <Col>
+               <Col className="custom-btn" onClick={loginUsingDeviceAndProvider}>
 
-                  <br></br>
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col>
-
-                  <br></br>
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={loginUsingDeviceAndProvider}>
-
-                  Login With Device + Provider
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}>
-
-                {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
-
-                  Login With Device + Guide
+                  Recover With Device + Provider
 
                 </Col>
 
@@ -1204,7 +1518,7 @@ const App = function App() {
 
                 <Col className="custom-btn" onClick={loginUsingProviderAndGuide}>
 
-                  Login With Guide + Provider
+                  Recover With Visa + Provider
 
                 </Col>
 
@@ -1218,7 +1532,101 @@ const App = function App() {
 
                 <Col>
 
-                  <h1>Share Transfer</h1>
+                  <h1>Refresh Lost Shares</h1>
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col>
+
+                  <br></br>
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col>
+
+                  <br></br>
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={deleteDeviceShare}>
+
+                  Delete Lost Device Share & Refresh
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={deleteVisaShare}>
+
+                  Delete Lost Visa Share & Refresh
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={deleteProviderShare}>
+
+                  Delete Lost Provider Share (Not Possible?)
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={generateNewShare}>
+
+                  Generate New Share
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={generateNewDeviceShare}>
+
+                  Generate New Device Share (In Progress)
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={generateNewShareWithVisaGuide}>
+
+                  Generate New Visa Share
+
+                </Col>
+
+              </Row>
+
+            </Col>
+
+            <Col>
+
+              <Row>
+
+                <Col>
+
+                  <h1>Share Transfers (Probably Not Needed)</h1>
 
                 </Col>
 
@@ -1262,7 +1670,7 @@ const App = function App() {
 
                 </Col>
 
-              </Row>
+             </Row>
 
             </Col>
 
@@ -1270,13 +1678,35 @@ const App = function App() {
 
           <h1>Output</h1>
 
-          <textarea style={{ width: "100%", height: "20vh" }} value={consoleText} readOnly></textarea>
+          <textarea style={{ width: "100%", height: "30vh" }} value={consoleText} readOnly></textarea>
 
           <hr></hr>
 
+          <Row>
+
+              <Col>
+
+                <br></br>
+
+            </Col>
+
+          </Row>
+
+          <h1>The Following Is For Playing Around/Testing And Is Not Directly Related To The POC</h1>
+
+          <Row>
+
+              <Col>
+
+                <br></br>
+
+            </Col>
+
+          </Row>
+
         <h1>Secret Sharing</h1>
 
-        <Col>
+        <div>
 
           <input
 
@@ -1286,7 +1716,11 @@ const App = function App() {
 
             onChange={(e) => {
 
-              setThreshold(e.currentTarget.value);
+              setThreshold(parseInt(e.target.value));
+
+              setShareDetails("0x0");
+
+              setShareToggle("split");
 
             }}
 
@@ -1302,37 +1736,205 @@ const App = function App() {
 
             onChange={(e) => {
 
-              setTotal(e.currentTarget.value);
+              setTotal(parseInt(e.target.value));
+
+              setShareDetails("0x0");
+
+              setShareToggle("split");
 
             }}
 
           />
 
-        </Col>
+        </div>
 
-          <Row className="frame">
+        <br></br>
 
-          <Col className="custom-btn" onClick={generateShares}>
+        {shareToggle === "split" ? <h4> Private Key (hex format) Below</h4> : <h4>Private Key Split Into {total} Shares</h4>}
+
+        {shareToggle === "split" ? (
+
+          <textarea style={{ width: "100%", height: "4vh" }} value={shareDetails} onChange={(e) => setShareDetails(e.currentTarget.value)}></textarea>
+
+        ) : (
+
+          <textarea
+
+            style={{ width: "100%", height: 4 * total + "vh" }}
+
+            value={shareDetails}
+
+            onChange={(e) => setShareDetails(e.currentTarget.value)}></textarea>
+
+        )}
+
+        <br></br>
+
+        {shareToggle === "split" ? (
+
+          <button className="custom-btn" style={{ width: "auto" }} onClick={generateShares}>
 
             Generate Shares
 
-          </Col>
+          </button>
 
-          <Col className="custom-btn" onClick={combineShares}>
+        ) : (
+
+          <button className="custom-btn" style={{ width: "auto" }} onClick={combineShares}>
 
             Combine Shares
 
+          </button>
+
+        )}
+
+                <br></br>
+
+        <h1>Mnemonics</h1>
+
+        {mnemonics.length === 0 ? (
+
+          <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonicsRandom}>
+
+            Generate Random Mnemonics
+
+          </button>
+
+        ) : (
+
+          <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonics}>
+
+            Generate Using Mnemonic
+
+          </button>
+
+        )}
+
+ 
+
+        <Table>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>BIP39 Mnemonic</span>
+
+            <Col>
+
+              <input
+
+                style={{ width: "100%" }}
+
+                value={mnemonics}
+
+                onChange={(e) => setMnemonics(e.currentTarget.value)}
+
+                placeholder="Insert Mnemonic or Generate Random Mnemonic"></input>
+
+            </Col>
+
+          </Row>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>BIP39 Seed</span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={bip39Seed} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>Entropy</span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={entropy} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>Public Key</span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={publicKey} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>Extended Public Key </span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={publicExtendedKey} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+         <Row>
+
+            <span style={{ width: "20%" }}>Private Key</span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={privateKey} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+          <Row>
+
+            <span style={{ width: "20%" }}>Extended Private Key </span>
+
+            <Col>
+
+              <input style={{ width: "100%" }} value={privateExtendedKey} readOnly></input>
+
+            </Col>
+
+          </Row>
+
+          <br></br>
+
+          <h4>BIP32 Derivation Path</h4>
+
+          <Col>
+
+            <input
+
+              style={{ width: "20%", textAlign: "center" }}
+
+              value={derivationPath}
+
+              onChange={(e) => setDerivationPath(e.currentTarget.value)}></input>
+
           </Col>
 
-        </Row>
+          <button className="custom-btn" onClick={deriveAccount}>
 
-          {shareToggle === "split" ? <h1>Share Split</h1> : <h1>Combine Shares</h1>}
+            Derive
 
-        <textarea style={{ width: "100%", height: "20vh" }} value={shareDetails} onChange={(e) => setShareDetails(e.currentTarget.value)}></textarea>
+          </button>
 
-        </div>
+          <textarea style={{ width: "100%", height: "8vh" }} value={derivedAccount} readOnly></textarea>
+
+        </Table>
 
       </div>
+
+    </div>
 
   );
 
