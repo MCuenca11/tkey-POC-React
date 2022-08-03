@@ -66,21 +66,6 @@ declare global {
 
 const clientId = "BC9mE4fQQ2Wmpjq0qioiZy3KQiqdhjisaBXLQ1XqxJsqKXqb1IJGhrGT50cE-6Ow1L9fHe6_m8c9tKjfnulh8jI";
 
- 
-
-// const web3auth = new Web3Auth({
-
-//   clientId,
-
-//   chainConfig: {
-
-//     chainNamespace: "eip155",
-
-//     chainId: "0x3",
-
-//   },
-
-// });
 
  
 
