@@ -1734,7 +1734,7 @@ const RefreshResetPasswordShare = async () => {
 
                 {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
 
-                  Login With Device + Password 1
+                  Login With Device + Password (Doesn't Work Yet)
 
                 </Col>
 
@@ -1746,7 +1746,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col className="custom-btn" onClick={initializeAndReconstruct}>
 
-                  Login With Device + Password 2
+                  Login With Device + Password (Doesn't Work Yet)
 
                 </Col>
 
