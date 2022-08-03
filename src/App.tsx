@@ -2015,7 +2015,7 @@ const RefreshResetVisaShare = async () => {
 
                 <Col className="custom-btn" onClick={deleteProviderShare}>
 
-                  Delete Lost Provider Share
+                  Delete Lost Provider Share (Not Possible?)
 
                 </Col>
 
@@ -2059,7 +2059,7 @@ const RefreshResetVisaShare = async () => {
 
                 <Col>
 
-                  <h1>Share Transfers </h1>
+                  <h1>Share Transfers (Not Needed?) </h1>
 
                 </Col>
 
