@@ -411,7 +411,7 @@ const App = function App() {
 
     try {
 
-      setConsoleText("Initializing a New Key Using Device, Provider, and Visa Shares...");
+      setConsoleText("Initializing a New Key Using Device, Provider, and Password Shares...");
 
       await triggerSocialProviderLogin();
 
@@ -425,7 +425,7 @@ const App = function App() {
 
       setShareDetails(res.privKey.toString("hex"));
 
-      await generateNewShareWithVisaGuide();
+      await generateNewShareWithPassword();
 
     } catch (error) {
 
@@ -491,7 +491,7 @@ const App = function App() {
 
  
 
-  const loginUsingDeviceAndGuide = async () => {
+  const loginUsingDeviceAndPassword = async () => {
 
     try {
 
@@ -513,9 +513,9 @@ const App = function App() {
 
       appendConsoleText("Successfully Acquired Device Share!");
 
-      await getVisaGuideShare();
+      await getPasswordShare();
 
-      appendConsoleText("Successfully Acquired Visa Guide Share!");
+      appendConsoleText("Successfully Acquired Password Share!");
 
  
 
@@ -547,7 +547,7 @@ const App = function App() {
 
  
 
-  const loginUsingProviderAndGuide = async () => {
+  const loginUsingProviderAndPassword = async () => {
 
     try {
 
@@ -559,9 +559,9 @@ const App = function App() {
 
       appendConsoleText("Successfully Acquired Social Provider Share!");
 
-      await getVisaGuideShare();
+      await getPasswordShare();
 
-      appendConsoleText("Successfully Acquired Visa Guide Share!");
+      appendConsoleText("Successfully Acquired Password Share!");
 
  
 
@@ -593,7 +593,7 @@ const App = function App() {
 
  
 
-  // Function that uses the device and Visa shares to reconstruct the key (Doesn't Work Right Now)
+  // Function that uses the device and password shares to reconstruct the key (Doesn't Work Right Now)
 
   const initializeAndReconstruct = async () => {
 
@@ -667,9 +667,9 @@ const App = function App() {
 
         } else if (curr.module === "securityQuestions") {
 
-          await getVisaGuideShare();
+          await getPasswordShare();
 
-         appendConsoleText("Successfully Acquired Visa Guide Share!");
+         appendConsoleText("Successfully Acquired Password Share!");
 
         }
 
@@ -735,29 +735,29 @@ const RefreshResetDeviceShare = async () => {
 
  
 
-const RefreshResetVisaShare = async () => {
+const RefreshResetPasswordShare = async () => {
 
   try {
 
-    setConsoleText("Deleting Visa Share...");
+    setConsoleText("Deleting Password Share...");
 
-    deleteVisaShare();
+    deletePasswordShare();
 
-    appendConsoleText("Visa Share Successfully Deleted and Shares Have Been Refreshed");
+    appendConsoleText("Password Share Successfully Deleted and Shares Have Been Refreshed");
 
-    appendConsoleText("Generating New Visa Share...");
+    appendConsoleText("Generating New Password Share...");
 
     await tKey.syncLocalMetadataTransitions();
 
-    generateNewShareWithVisaGuide();
+    generateNewShareWithPassword();
 
-    appendConsoleText("Successfully Generated New Visa Share!");
+    appendConsoleText("Successfully Generated New Password Share!");
 
     appendConsoleText("You're All Set!");
 
   } catch (error) {
 
-    setConsoleText("Failed To Refresh Visa Share");
+    setConsoleText("Failed To Refresh Password Share");
 
   }
 
@@ -771,7 +771,7 @@ const RefreshResetVisaShare = async () => {
 
 * Will have to create a new device share but the social provider
 
-* and visa logins are the same although with new shares. The
+* and password logins are the same although with new shares. The
 
 * private key remains the same when shares are refreshed.
 
@@ -807,9 +807,9 @@ const RefreshResetVisaShare = async () => {
 
   /**
 
-   * Deletes the Visa share info and then refreshes all the shares
+   * Deletes the passwrod share info and then refreshes all the shares
 
-   * Will have to create a new Visa share but the social provider
+   * Will have to create a new password share but the social provider
 
    * and device logins are the same although with new shares. The
 
@@ -817,21 +817,21 @@ const RefreshResetVisaShare = async () => {
 
    */
 
-  const deleteVisaShare = async () => {
+  const deletePasswordShare = async () => {
 
     try {
 
-      setConsoleText("Deleting Visa Guide Share...");
+      setConsoleText("Deleting Password Share...");
 
       const indexes = tKey.getCurrentShareIndexes();
 
       await tKey.deleteShare(indexes[2]);
 
-      setConsoleText("Visa Share Deleted!");
+      setConsoleText("Password Share Deleted!");
 
     } catch (error) {
 
-      appendConsoleText("Failed To Delete Visa Share");
+      appendConsoleText("Failed To Delete Password Share");
 
     }
 
@@ -929,28 +929,28 @@ const RefreshResetVisaShare = async () => {
 
     // The private key remians the same.
 
-    const generateNewShareWithVisaGuide = async () => {
+    const generateNewShareWithPassword = async () => {
  
 
-      appendConsoleText("Generating New Share With Visa Guide ID...");
+      appendConsoleText("Generating New Share With Password...");
 
-      popup("Create A Visa Guide ID (At Least 5 Characters)", {
+      popup("Create A Password (At Least 5 Characters)", {
 
         content: "input" as any,
 
-      }).then(async (visaID) => {
+      }).then(async (password) => {
 
-        if (visaID.length >= 5) {
+        if (password.length >= 5) {
 
-          await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(visaID, "What's Your Visa Guide ID?");
+          await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(password, "What's Your Password?");
 
-          appendConsoleText("Successfully Generated Share With Visa Guide ID!");
+          appendConsoleText("Successfully Generated Share With Password!");
 
         } else {
 
-          popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
+          popup("Error", "Password Must Be At Least 5 Characters", "error");
 
-          setConsoleText("Failed to Generate Share With Visa Guide ID");
+          setConsoleText("Failed to Generate Share With Password");
 
         }
 
@@ -1252,27 +1252,27 @@ const RefreshResetVisaShare = async () => {
 
  
 
-  // Helper function to return the Visa share if the inputted Visa ID is correct.
+  // Helper function to return the password share if the inputted password is correct.
 
-  const getVisaGuideShare = async () => {
+  const getPasswordShare = async () => {
 
-    appendConsoleText("Importing Share from Visa Guide...");
+    appendConsoleText("Importing Share from Password...");
 
-    await popup("What is your Visa Guide ID?", {
+    await popup("What is your password?", {
 
       content: "input" as any,
 
-    }).then(async (visaID) => {
+    }).then(async (password) => {
 
-      if (visaID.length >= 5) {
+      if (password.length >= 5) {
 
-        await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(visaID);
+        await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(password);
 
-        appendConsoleText("Successfully Imported Share Using Visa Guide ID!");
+        appendConsoleText("Successfully Imported Share Using Password!");
 
       } else {
 
-        popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
+        popup("Error", "Password Must Be At Least 5 Characters", "error");
 
       }
 
@@ -1540,13 +1540,6 @@ const RefreshResetVisaShare = async () => {
   return (
 
       <div className="showcase">
-
-        <div className="showcase-top">
-
-          <img src="https://imgs.search.brave.com/hROsXsGVks4so9hB1OkgaXBlme0UsyvHmF_69c4m720/rs:fit:1024:416:1/g:ce/aHR0cHM6Ly90aGVz/dHJhd2dyb3VwLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAx/OS8wNi9WaXNhLWxv/Z28tMTAyNHg0MTYu/cG5n" alt="Visa Logo" />
-
-        </div>
-
           <Row>
 
               <Col>
@@ -1563,7 +1556,7 @@ const RefreshResetVisaShare = async () => {
 
               <Col>
 
-                <h1>This is a POC for Integrating Visa Guide With TKey</h1>
+                <h1>This is a POC for Integrating With TKey</h1>
 
               </Col>
 
@@ -1737,11 +1730,11 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}>
+                <Col className="custom-btn" onClick={loginUsingDeviceAndPassword}>
 
                 {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
 
-                  Login With Device + Visa 1
+                  Login With Device + Password 1
 
                 </Col>
 
@@ -1749,11 +1742,11 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}> */}
+                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndPassword}> */}
 
                 <Col className="custom-btn" onClick={initializeAndReconstruct}>
 
-                  Login With Device + Visa 2
+                  Login With Device + Password 2
 
                 </Col>
 
@@ -1771,9 +1764,9 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={loginUsingProviderAndGuide}>
+                <Col className="custom-btn" onClick={loginUsingProviderAndPassword}>
 
-                  Recover With Visa + Provider
+                  Recover With Password + Provider
 
                 </Col>
 
@@ -1825,9 +1818,9 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={RefreshResetVisaShare}>
+                <Col className="custom-btn" onClick={RefreshResetPasswordShare}>
 
-                  Refresh/Reset Visa Share
+                  Refresh/Reset Password Share
 
                 </Col>
 
@@ -1845,9 +1838,9 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={deleteVisaShare}>
+                <Col className="custom-btn" onClick={deletePasswordShare}>
 
-                  Delete Lost Visa Share
+                  Delete Lost Password Share
 
                 </Col>
 
@@ -1885,9 +1878,9 @@ const RefreshResetVisaShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={generateNewShareWithVisaGuide}>
+                <Col className="custom-btn" onClick={generateNewShareWithPassword}>
 
-                  Generate New Visa Share
+                  Generate New Password Share
 
                 </Col>
 
