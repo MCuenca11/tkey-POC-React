@@ -28,6 +28,28 @@ import { generateMnemonic, mnemonicToSeedSync, validateMnemonic, mnemonicToEntro
 
 import HDKey from "hdkey";
 
+import utils, { keccak256, toChecksumAddress, privateToAddress } from 'ethereumjs-util';
+
+import { generateAddressFromPublicKey, ShareStore } from "@tkey/common-types";
+
+import * as http from "http";
+
+import * as https from 'https';
+
+// import fetch from 'node-fetch';
+
+// import axios from 'axios';
+
+import jwt_decode , { JwtPayload } from "jwt-decode";
+
+// var unirest = require("unirest");
+
+// import { OpenloginAdapter } from "@web3auth/openlogin-adapter";
+
+// import { Web3Auth } from "@web3auth/web3auth";
+
+// import TorusSdk from "@toruslabs/torus-direct-web-sdk";
+
  
 
 declare global {
@@ -41,6 +63,28 @@ declare global {
 }
 
  
+
+const clientId = "BC9mE4fQQ2Wmpjq0qioiZy3KQiqdhjisaBXLQ1XqxJsqKXqb1IJGhrGT50cE-6Ow1L9fHe6_m8c9tKjfnulh8jI";
+
+ 
+
+// const web3auth = new Web3Auth({
+
+//   clientId,
+
+//   chainConfig: {
+
+//     chainNamespace: "eip155",
+
+//     chainId: "0x3",
+
+//   },
+
+// });
+
+ 
+
+// These are the Torus supported verifiers:
 
 const GOOGLE = "google";
 
@@ -72,7 +116,13 @@ const HOSTED_EMAIL_PASSWORDLESS = "hosted_email_passwordless";
 
 const HOSTED_SMS_PASSWORDLESS = "hosted_sms_passwordless";
 
+// Torus Domain
+
 const AUTH_DOMAIN = "https://torus-test.auth0.com";
+
+// My Domain
+
+// const AUTH_DOMAIN = "dev-f-j0-dka.us.auth0.com";
 
  
 
@@ -102,7 +152,17 @@ const loginConnectionMap: Record<string, any> = {
 
   [LINE]: { domain: AUTH_DOMAIN },
 
+ 
+
+  // I added this
+
+  [GOOGLE]: { domain: AUTH_DOMAIN },
+
 };
+
+ 
+
+// This maps the verifiers to their repsective details needed.
 
  
 
@@ -114,9 +174,21 @@ const verifierMap: Record<string, any> = {
 
     typeOfLogin: "google",
 
-    clientId: "134678854652-vnm7amoq0p23kkpkfviveul9rb26rmgn.apps.googleusercontent.com",
+    // Tkey Client ID
 
-    verifier: "web3auth-testnet-verifier",
+    // clientId: "134678854652-vnm7amoq0p23kkpkfviveul9rb26rmgn.apps.googleusercontent.com",
+
+    // My client ID
+
+    clientId: "648279118468-3p8fi5cha7sj4kv3amqiah3kff591srm.apps.googleusercontent.com",
+
+    // My auth0 client id
+
+    // clientId: "wdpwTWRO0s0agTAsvKwuqq4zuYnhKMDO",
+
+    // verifier: "web3auth-testnet-verifier",
+
+    verifier: "POC-Google-Verifier",
 
   },
 
@@ -126,7 +198,7 @@ const verifierMap: Record<string, any> = {
 
   [TWITCH]: { name: "Twitch", typeOfLogin: "twitch", clientId: "f5and8beke76mzutmics0zu4gw10dj", verifier: "twitch-lrc" },
 
-  [DISCORD]: { name: "Discord", typeOfLogin: "discord", clientId: "682533837464666198", verifier: "discord-lrc" },
+ [DISCORD]: { name: "Discord", typeOfLogin: "discord", clientId: "682533837464666198", verifier: "discord-lrc" },
 
   [EMAIL_PASSWORD]: {
 
@@ -154,7 +226,13 @@ const verifierMap: Record<string, any> = {
 
   [APPLE]: { name: "Apple", typeOfLogin: "apple", clientId: "m1Q0gvDfOyZsJCZ3cucSQEe9XMvl9d9L", verifier: "torus-auth0-apple-lrc" },
 
+  // Torus
+
   [GITHUB]: { name: "Github", typeOfLogin: "github", clientId: "PC2a4tfNRvXbT48t89J5am0oFM21Nxff", verifier: "torus-auth0-github-lrc" },
+
+  // Mine
+
+  // [GITHUB]: { name: "Github", typeOfLogin: "github", clientId: "wdpwTWRO0s0agTAsvKwuqq4zuYnhKMDO", verifier: "torus-auth0-github-lrc" },
 
   [LINKEDIN]: { name: "Linkedin", typeOfLogin: "linkedin", clientId: "59YxSgx79Vl3Wi7tQUBqQTRTxWroTuoc", verifier: "torus-auth0-linkedin-lrc" },
 
@@ -192,6 +270,32 @@ const verifierMap: Record<string, any> = {
 
  
 
+// This is to be used with the aggregate login (Hasn't worked yet)
+
+// const AGGREGATE_LOGIN = {
+
+//   aggregateVerifierType: "single_id_verifier",
+
+//   verifierIdentifier: "tkey-google",
+
+//   subVerifierDetailsArray: [
+
+//     {
+
+//       typeOfLogin: "google",
+
+//       verifier: "web3auth-testnet-verifier",
+
+//       clientId: "134678854652-vnm7amoq0p23kkpkfviveul9rb26rmgn.apps.googleusercontent.com",
+
+//     },
+
+//   ],
+
+// };
+
+ 
+
 // 1. Setup Service Provider
 
 const directParams = {
@@ -205,6 +309,18 @@ const directParams = {
 };
 
 const serviceProvider = new TorusServiceProvider({ directParams });
+
+ 
+
+// const serviceProvider = new TorusSdk({
+
+//   baseUrl: `${window.location.origin}/serviceworker`,
+
+//   enableLogging: true,
+
+//   network: "testnet", // details for test net
+
+// });
 
  
 
@@ -236,11 +352,11 @@ const tKey = new ThresholdKey({
 
 const App = function App() {
 
+  // The following sets up some of the UI to begin.
+
   const [authVerifier, setAuthVerifier] = useState<string>("google");
 
   const [consoleText, setConsoleText] = useState<any>("Output Will Appear Here. You Can Inspect The Page To Get More Details.");
-
- 
 
   const [derivedAccount, setDerivedAccount] = useState<any>("Output will appear here");
 
@@ -272,23 +388,11 @@ const App = function App() {
 
  
 
-  // Helper function for having multiple lines of text in the console
-
-  const appendConsoleText = (el: any) => {
-
-    const data = typeof el === "string" ? el : JSON.stringify(el);
-
-    setConsoleText((x: any) => x + "\n" + data);
-
-  };
-
- 
+  // Init Service Provider
 
   useEffect(() => {
 
-   const init = async () => {
-
-      // Init Service Provider
+    const init = async () => {
 
       await (tKey.serviceProvider as TorusServiceProvider).init({ skipSw: false });
 
@@ -302,209 +406,17 @@ const App = function App() {
 
     };
 
- 
-
     init();
 
   }, []);
 
  
 
-  // Function that uses the device and Visa shares to reconstruct the key (Doesn't Work Right Now)
-
-  const initializeAndReconstruct = async () => {
-
-    try {
-
-      let consoleTextCopy: Record<string, any> = {};
-
-      if (tKey === null) {
-
-        return;
-
-      }
-
-      const details = await tKey.initialize();
-
-      let shareDescriptions: any = Object.assign({}, details.shareDescriptions);
-
-      Object.keys(shareDescriptions).map((key) => {
-
-        shareDescriptions[key] = shareDescriptions[key].map((it: any) => JSON.parse(it));
-
-      });
+  // ************THE FOLLOWING ARE THE MAIN FUNCTIONS:***************
 
  
 
-      // The order of these strings determines which one will be executed first.
-
-      let priority = ["webStorage", "securityQuestions"];
-
-      shareDescriptions = Object.values(shareDescriptions)
-
-          .flatMap((x) => x)
-
-          .sort((a, b) => priority.indexOf((a as any).module) - priority.indexOf((b as any).module));
-
- 
-
-      let requiredShares = details.requiredShares;
-
-      if (shareDescriptions.length === 0 && requiredShares > 0) {
-
-        throw new Error("No share descriptions available. New key assign might be required or contact support.");
-
-      }
-
- 
-
-      while (requiredShares > 0 && shareDescriptions.length > 0) {
-
-        let curr = shareDescriptions.shift();
-
-        if (curr.module === "webStorage") {
-
-          try {
-
-            // Do wee need to make a new key?
-
-            // tKey._initializeNewKey();
-
-            await (tKey.modules.webStorage as WebStorageModule).inputShareFromWebStorage();
-
-            requiredShares--;
-
-            appendConsoleText("Successfully Acquired Device Share!");
-
-          } catch (err) {
-
-            console.log("Couldn't Get The Device Share.", err);
-
-          }
-
-        } else if (curr.module === "securityQuestions") {
-
-          await getVisaGuideShare();
-
-          appendConsoleText("Successfully Acquired Visa Guide Share!");
-
-        }
-
- 
-
-        if (shareDescriptions.length === 0 && requiredShares > 0) {
-
-          throw new Error("URGENT: Need To Refresh Lost Share");
-
-        }
-
-      }
-
- 
-
-      const key = await tKey.reconstructKey();
-
-      consoleTextCopy.privKey = key.privKey.toString("hex");
-
-      setConsoleText(consoleTextCopy);
-
-    } catch (error) {
-
-      setConsoleText("Failed To Login");
-
-      console.error(error, "caught");
-
-    }
-
-  };
-
- 
-
-  const triggerSocialProviderLogin = async () => {
-
-    try {
-
-      console.log("Triggering Login");
-
- 
-
-      // 2. Set jwtParameters depending on the verifier (google / facebook / linkedin etc)
-
-      const jwtParams = loginConnectionMap[authVerifier] || {};
-
- 
-
-      const { typeOfLogin, clientId, verifier } = verifierMap[authVerifier];
-
- 
-
-      // 3. Trigger Login ==> opens the popup
-
-      const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerLogin({
-
-        typeOfLogin,
-
-        verifier,
-
-        clientId,
-
-        jwtParams,
-
-      });
-
- 
-
-      // const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerHybridAggregateLogin({
-
-      //   singleLogin: {
-
-      //     typeOfLogin,
-
-      //     verifier,
-
-      //     clientId,
-
-      //     jwtParams,
-
-      //   },
-
-      //   aggregateLoginParams: {
-
-      //     aggregateVerifierType: "single_id_verifier",
-
-      //     verifierIdentifier: "tkey-google",
-
-      //     subVerifierDetailsArray: [
-
-      //       {
-
-      //         clientId: "221898609709-obfn3p63741l5333093430j3qeiinaa8.apps.googleusercontent.com",
-
-      //         typeOfLogin: "google",
-
-      //         verifier: "torus",
-
-      //       },
-
-      //     ],
-
-      //   }
-
-      // });
-
- 
-
-      // setConsoleText(loginResponse);
-
-    } catch (error) {
-
-      setConsoleText("Could Not Get The Social Provider Share")
-
-      console.log(error);
-
-    }
-
-  };
+  // ******************COLUMN 1 MAIN FUNCTIONS:*********************
 
  
 
@@ -529,18 +441,6 @@ const App = function App() {
       setShareDetails(res.privKey.toString("hex"));
 
       await generateNewShareWithVisaGuide();
-
-      // appendConsoleText("Successfully Generated New Share With Visa Guide ID!");
-
-      // appendConsoleText("Here's Your Private Key:");
-
-      // appendConsoleText(res.privKey);
-
-      // setShareToggle("split");
-
-      // appendConsoleText("Here's Some Extra Info:");
-
-      // appendConsoleText(res);
 
     } catch (error) {
 
@@ -614,7 +514,7 @@ const App = function App() {
 
       console.log("pass 0");
 
-      // await tKey.initialize();
+      await tKey.initialize();
 
       console.log("pass 1");
 
@@ -696,6 +596,116 @@ const App = function App() {
 
       appendConsoleText("Here's Your Private Key: " + reconstructedKey.privKey.toString("hex"));
 
+   } catch (error) {
+
+      setConsoleText("Failed To Login");
+
+      console.error(error, "caught");
+
+    }
+
+  };
+
+ 
+
+  // Function that uses the device and Visa shares to reconstruct the key (Doesn't Work Right Now)
+
+  const initializeAndReconstruct = async () => {
+
+    try {
+
+      let consoleTextCopy: Record<string, any> = {};
+
+      if (tKey === null) {
+
+        return;
+
+      }
+
+      const details = await tKey.initialize();
+
+      let shareDescriptions: any = Object.assign({}, details.shareDescriptions);
+
+      Object.keys(shareDescriptions).map((key) => {
+
+        shareDescriptions[key] = shareDescriptions[key].map((it: any) => JSON.parse(it));
+
+      });
+
+ 
+
+      // The order of these strings determines which one will be executed first.
+
+      let priority = ["webStorage", "securityQuestions"];
+
+      shareDescriptions = Object.values(shareDescriptions)
+
+          .flatMap((x) => x)
+
+          .sort((a, b) => priority.indexOf((a as any).module) - priority.indexOf((b as any).module));
+
+ 
+
+      let requiredShares = details.requiredShares;
+
+      if (shareDescriptions.length === 0 && requiredShares > 0) {
+
+        throw new Error("No share descriptions available. New key assign might be required or contact support.");
+
+      }
+
+ 
+
+      while (requiredShares > 0 && shareDescriptions.length > 0) {
+
+        let curr = shareDescriptions.shift();
+
+        if (curr.module === "webStorage") {
+
+          try {
+
+            // Do wee need to make a new key?
+
+            // tKey._initializeNewKey();
+
+            await (tKey.modules.webStorage as WebStorageModule).inputShareFromWebStorage();
+
+            requiredShares--;
+
+            appendConsoleText("Successfully Acquired Device Share!");
+
+          } catch (err) {
+
+            console.log("Couldn't Get The Device Share.", err);
+
+          }
+
+        } else if (curr.module === "securityQuestions") {
+
+          await getVisaGuideShare();
+
+         appendConsoleText("Successfully Acquired Visa Guide Share!");
+
+        }
+
+ 
+
+        if (shareDescriptions.length === 0 && requiredShares > 0) {
+
+          throw new Error("URGENT: Need To Refresh Lost Share");
+
+        }
+
+      }
+
+ 
+
+      const key = await tKey.reconstructKey();
+
+      consoleTextCopy.privKey = key.privKey.toString("hex");
+
+      setConsoleText(consoleTextCopy);
+
     } catch (error) {
 
       setConsoleText("Failed To Login");
@@ -708,121 +718,97 @@ const App = function App() {
 
  
 
-  const reconstructKey = async () => {
-
-    try {
-
-      console.log("Reconstructing Key");
-
-      setConsoleText("Reconstructing key");
-
-      let reconstructedKey = await tKey.reconstructKey();
-
-      appendConsoleText(reconstructedKey.privKey);
-
-    } catch (error) {
-
-      setConsoleText("Failed Reconstruct The Key");
-
-      console.error(error, "caught");
-
-    }
-
-  };
+  // *****************COLUMN 2 MAIN FUNCTIONS:************************
 
  
 
-  const getTKeyDetails = async () => {
+const RefreshResetDeviceShare = async () => {
 
-    try {
+  try {
 
-      setConsoleText("Tkey Details:");
+    setConsoleText("Deleting Device Share...");
 
-      appendConsoleText("Private Key:");
+    await deleteDeviceShare();
 
-      appendConsoleText("0x" + tKey.privKey.toString('hex'));
+    appendConsoleText("Device Share Successfully Deleted and Shares Have Been Refreshed");
 
-      appendConsoleText("More Info:");
+    await tKey.syncLocalMetadataTransitions();
 
-      appendConsoleText(tKey.getKeyDetails());
+    appendConsoleText("Generating New Device Share...");
 
-    } catch (error) {
+    await generateNewDeviceShare();
 
-      setConsoleText("Failed Get The Key Details. May Have To Login/Reconstruct It First");
+    appendConsoleText("You're All Set!");
 
-    }
+  } catch (error) {
 
-  };
+    setConsoleText("Failed To Refresh Device Share");
 
- 
+  }
 
-  const generateShares = () => {
-
-    var re = /[0-9A-Fa-f]*/g;
-
-    var keyToBeSplit = shareDetails.replaceAll('"', "");
-
-    if (keyToBeSplit.substring(0, 2) === "0x") {
-
-      keyToBeSplit = keyToBeSplit.substring(2);
-
-    }
-
-    if (re.test(keyToBeSplit)) {
-
-      setShareToggle("combine");
-
-      var shares = window.secrets.share(keyToBeSplit, total, threshold);
-
-      setShareDetails(shares.join("\n"));
-
-    } else {
-
-      popup("Please enter a valid hexadecimal number");
-
-    }
-
-  };
+}
 
  
 
-  const combineShares = () => {
+const RefreshResetVisaShare = async () => {
 
-    if (shareToggle === "combine") {
+  try {
 
-      setShareToggle("split");
+    setConsoleText("Deleting Visa Share...");
 
-    }
+    deleteVisaShare();
 
-    var comb = window.secrets.combine(shareDetails.split("\n"));
+    appendConsoleText("Visa Share Successfully Deleted and Shares Have Been Refreshed");
 
-    setShareDetails(comb);
+    appendConsoleText("Generating New Visa Share...");
 
-  };
+    await tKey.syncLocalMetadataTransitions();
+
+    generateNewShareWithVisaGuide();
+
+    appendConsoleText("Successfully Generated New Visa Share!");
+
+    appendConsoleText("You're All Set!");
+
+  } catch (error) {
+
+    setConsoleText("Failed To Refresh Visa Share");
+
+  }
+
+}
 
  
+
+/**
+
+* Deletes the device share info and then refreshes all the shares
+
+* Will have to create a new device share but the social provider
+
+* and visa logins are the same although with new shares. The
+
+* private key remains the same when shares are refreshed.
+
+*/
 
   const deleteDeviceShare = async () => {
 
     try {
 
-      // setConsoleText("Tkey Details:");
-
-      // appendConsoleText(tKey.getKeyDetails());
-
       setConsoleText("Deleting Device Share...");
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      appendConsoleText(tKey.shares);
+      // appendConsoleText(tKey.shares);
 
-      appendConsoleText(indexes);
+      // appendConsoleText(indexes);
 
       await tKey.deleteShare(indexes[1]);
 
-      appendConsoleText(indexes);
+      // appendConsoleText(indexes);
 
-      appendConsoleText("Device Share Deleted!");
+      appendConsoleText("Device Share Deleted! Please Refresh Page For Complete Share Deletion to Take Effect.");
 
     } catch (error) {
 
@@ -834,13 +820,21 @@ const App = function App() {
 
  
 
+  /**
+
+   * Deletes the Visa share info and then refreshes all the shares
+
+   * Will have to create a new Visa share but the social provider
+
+   * and device logins are the same although with new shares. The
+
+   * private key remains the same when shares are refreshed.
+
+   */
+
   const deleteVisaShare = async () => {
 
     try {
-
-      // setConsoleText("Tkey Details:");
-
-      // appendConsoleText(tKey.getKeyDetails());
 
       setConsoleText("Deleting Visa Guide Share...");
 
@@ -860,19 +854,19 @@ const App = function App() {
 
  
 
+  // Doesn't seem to be possible because provider is tied to the key
+
+  // initialization. (Not sure)
+
   const deleteProviderShare = async () => {
 
     try {
-
-      // setConsoleText("Tkey Details:");
-
-      // appendConsoleText(tKey.getKeyDetails());
 
       setConsoleText("Deleting Social Provider Share...");
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      await tKey.deleteShare(indexes[3]);
+      await tKey.deleteShare(indexes[0]);
 
       setConsoleText("Social Provider Share Deleted!");
 
@@ -885,6 +879,10 @@ const App = function App() {
   };
 
  
+
+  // Generates a new share. Adds to the total number of shares but
+
+  // the private key stays the same.
 
   const generateNewShare = async () => {
 
@@ -910,45 +908,23 @@ const App = function App() {
 
  
 
+  // Used after the device share is deleted to make a new device share.
+
+  // The private key remians the same.
+
   const generateNewDeviceShare = async () => {
 
     try {
 
       setConsoleText("Generating New Share...");
 
-      const indexes = tKey.getCurrentShareIndexes();
+      const metadata = tKey.getMetadata();
 
-      await tKey.deleteShare(indexes[3]);
+      const newSharesDetails = await tKey.generateNewShare();
 
-      const result = await tKey.generateNewShare();
+      const newShareStore = newSharesDetails.newShareStores[newSharesDetails.newShareIndex.toString("hex")];
 
-      appendConsoleText("1");
-
-      // const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
-
-      // appendConsoleText("2");
-
-      // const shareStore = webStorageModule.getDeviceShare();
-
-      appendConsoleText(result.newShareStores);
-
-      appendConsoleText(result.newShareIndex);
-
-      // webStorageModule.storeDeviceShare(result.newShareStores[1]);
-
-      appendConsoleText("3");
-
-      // appendConsoleText(result);
-
-      // const shareStore = await result.newShareStores;
-
-      // appendConsoleText("share stores");
-
-      // appendConsoleText(shareStore);
-
- 
-
-      tKey.storeDeviceShare(result.newShareStores[1]);
+      tKey.storeDeviceShare(newShareStore);
 
       // First get your device share using
 
@@ -964,23 +940,169 @@ const App = function App() {
 
  
 
-    // Helper function used to give guide a share of the key.
+    // Used after the device share is deleted to make a new device share.
+
+    // The private key remians the same.
 
     const generateNewShareWithVisaGuide = async () => {
 
+ 
+
+      // // Step 1: POST to get the refid in the response
+
+      // const userId = "michaeltest3@visa.com";
+
+      // const body = {
+
+      //   "userId": userId,
+
+      //   "deviceInfo": {
+
+      //       "dvcId": "DEVICE12345678910",
+
+      //       "dvcHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+
+      //       "dvcAgent": "TW96aWxsYS81LjAgKGNvbXBhdGlibGU7IE1TSUUgOS4wOyBXaW5kb3dzIFBob25lIE9TIDcuNTsgVHJpZGVudC81LjA7IElFTW9iaWxlLzkuMCk=",
+
+      //       "cookieIds": [
+
+      //           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+      //       ]
+
+      //   }
+
+      // };
+
+ 
+
+      // let myRefid;
+
+      // axios.post('https://vls-api-qa/vls/lght/loginhint', body)
+
+      // .then(function (response) {
+
+      //   console.log(response);
+
+      //   console.log(response.data);
+
+      //   myRefid = response.data["refid"];
+
+      // })
+
+      // .catch(function (error) {
+
+      //   console.log(error);
+
+      // });
+
+ 
+
+      // // Step 2: GET using the refid and url to get the code value
+
+      // let code;
+
+      // let code2;
+
+      // axios.get('https://qa.auth.visa.com/oauth2/auth?client_id=TF4pngs4THv5NrELUCsWI4fynstHu_GRPzSoPiB9i0R8aF8PVoSb3c4WTwdRyxJUT4ezn3ftAFUbpYieVy0gsg&redirect_uri=https://sl73lowvwbd001.visa.com:8443&login_hint' +
+
+      // myRefid +
+
+      // '&scope=openid&nonce=9305827966818817769680221&response_type=code&domain=simulatorapp.visa.com&display=page&response_mode=query&state=09b20bcf-a410-4568-8324-766ff202c480&grant_type=authorization_code&code_challenge=qYIfcTUYI1QA18Sj_uiQ2DAAUBn-Nu54IHTHpTSBo5o&code_challenge_method=S256')
+
+      // .then(function (response) {
+
+      //   console.log(response.data);
+
+      //   // code = response.data["code"];
+
+ 
+
+      //   let urlParameters = new URLSearchParams( window.location.search );
+
+      //   const code2 = urlParameters.get( 'code' );
+
+      // })
+
+      // .catch(function (error) {
+
+      //   console.log(error);
+
+      // });
+
+ 
+
+      // // Step 3: POST to get the id_token
+
+      // const body2 = {
+
+      //   "client_id": "TF4pngs4THv5NrELUCsWI4fynstHu_GRPzSoPiB9i0R8aF8PVoSb3c4WTwdRyxJUT4ezn3ftAFUbpYieVy0gsg",
+
+      //   "redirect_uri": "https://sl73lowvwbd001.visa.com:8443",
+
+      //   "grant_type": "authorization_code",
+
+      //   "code": code2,
+
+      //   "code_verifier": "WTFRRWtWQ3BjaUQ2bEVNOFNzbjBHaGZRNWFpTDE1amtVU2JGY0owdEZHbVFZZ29iYXB0"
+
+      // };
+
+ 
+
+      // axios.post('https://qa.auth.visa.com/oauth2/token', body2)
+
+      // .then(function (response) {
+
+      //   console.log(response.data);
+
+      //   // Get the encrypted token from the response
+
+      //   const idToken: string = response.data["id_token"];
+
+      //   // Decode the token
+
+      //   const decodedJWT: string = jwt_decode(idToken);
+
+      //   // Parse the token string into an object
+
+      //   const payload = JSON.parse(decodedJWT);
+
+      //   // Get the username
+
+      //   const username: string = payload.username;
+
+     
+
+      //   // Pass in the username as the security question answer
+
+      //   (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(username, "What's Your Visa Guide ID?");
+
+      //   appendConsoleText("Successfully Generated Share With Visa Guide ID!");
+
+      // })
+
+      // .catch(function (error) {
+
+      //   console.log(error);
+
+      // });
+
+ 
+
       appendConsoleText("Generating New Share With Visa Guide ID...");
 
-      popup("What's Your Visa Guide ID? (At Least 5 Characters)", {
+      popup("Create A Visa Guide ID (At Least 5 Characters)", {
 
         content: "input" as any,
 
-      }).then(async (value) => {
+      }).then(async (visaID) => {
 
-        if (value.length >= 5) {
+        if (visaID.length >= 5) {
 
-          await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(value, "What's Your Visa Guide ID?");
+          await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(visaID, "What's Your Visa Guide ID?");
 
-          setConsoleText("Successfully Generated Share With Visa Guide ID!");
+          appendConsoleText("Successfully Generated Share With Visa Guide ID!");
 
         } else {
 
@@ -997,6 +1119,26 @@ const App = function App() {
     };
 
  
+
+ 
+
+    const windowChange = async () => {
+
+      window.location.href = 'https://vls-api-qa/vls/lght/loginhint';
+
+    };
+
+ 
+
+    const windowChange2 = async () => {
+
+      window.location.href = 'localhost3000';
+
+    };
+
+ 
+
+  // Not needed. Keeping for now.
 
   const refreshShares = async () => {
 
@@ -1042,10 +1184,6 @@ const App = function App() {
 
       appendConsoleText(existingShareIndexes);
 
- 
-
-      // Need to make new key? Want the same private key though
-
     } catch (error) {
 
       setConsoleText("Failed Get The Key Details. May Have To Login/Reconstruct It First");
@@ -1056,119 +1194,9 @@ const App = function App() {
 
  
 
-  const generateMnemonics = () => {
+  // *****************COLUMN 3 MAIN FUNCTIONS:************************
 
-    if (!validateMnemonic(mnemonics)) {
-
-      popup("Incorrect Mnemonic", "", "error");
-
-      setBIP39Seed("Incorrect Mnemonic");
-
-      setEntropy("Incorrect Mnemonic");
-
-      setPublicKey("Incorrect Mnemonic");
-
-      setPublicExtendedKey("Incorrect Mnemonic");
-
-      setPrivateKey("Incorrect Mnemonic");
-
-      setPrivateExtendedKey("Incorrect Mnemonic");
-
-    } else {
-
-      const bip39Seed = mnemonicToSeedSync(mnemonics).toString("hex");
-
-      const bip39entropy = mnemonicToEntropy(mnemonics);
-
- 
-
-      setBIP39Seed(bip39Seed);
-
-      setEntropy(bip39entropy);
-
-      const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
-
-      setPublicKey(hd.publicKey.toString("hex"));
-
-      setPublicExtendedKey(hd.publicExtendedKey);
-
-      setPrivateKey(hd.privateKey.toString("hex"));
-
-      setPrivateExtendedKey(hd.privateExtendedKey);
-
-      setHDKey(hd);
-
-    }
-
-  };
-
-  const deriveAccount = () => {
-
-    const childHd = hdKey.derive(derivationPath);
-
-    setDerivedAccount("Private Key " + childHd.privateKey.toString("hex") + "\nPublic Key " + childHd.publicKey.toString("hex"));
-
-  };
-
- 
-
-  const generateMnemonicsRandom = () => {
-
-    const bipMnemonic = generateMnemonic();
-
-    const bip39Seed = mnemonicToSeedSync(bipMnemonic).toString("hex");
-
-    const bip39entropy = mnemonicToEntropy(bipMnemonic);
-
-    setMnemonics(bipMnemonic);
-
-    setBIP39Seed(bip39Seed);
-
-    setEntropy(bip39entropy);
-
-    const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
-
-    setPublicKey(hd.publicKey.toString("hex"));
-
-    setPublicExtendedKey(hd.publicExtendedKey);
-
-    setPrivateKey(hd.privateKey.toString("hex"));
-
-    setPrivateExtendedKey(hd.privateExtendedKey);
-
-    setHDKey(hd);
-
-  };
-
- 
-
-  // Helper function to return the guide share if the inputted guide ID is correct.
-
-  const getVisaGuideShare = async () => {
-
-    appendConsoleText("Importing Share from Visa Guide...");
-
-    await popup("What is your Visa Guide ID?", {
-
-      content: "input" as any,
-
-    }).then(async (value) => {
-
-      if (value.length >= 5) {
-
-        await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(value);
-
-        appendConsoleText("Successfully Imported Share Using Visa Guide ID!");
-
-      } else {
-
-        popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
-
-      }
-
-    });
-
-  };
+  // I don't think I need these anymore but I'm keeping it for now.
 
  
 
@@ -1291,6 +1319,379 @@ const App = function App() {
     }
 
   };
+
+
+
+
+
+  // ************THE FOLLOWING ARE HELPER FUNCTIONS:***************
+
+ 
+
+  // Uses the details in the social provider mapping to have the user login with a pop up.
+
+  const triggerSocialProviderLogin = async () => {
+
+    try {
+
+     console.log("Triggering Login");
+
+ 
+
+      // 2. Set jwtParameters depending on the verifier (google / facebook / linkedin etc)
+
+      const jwtParams = loginConnectionMap[authVerifier] || {};
+
+ 
+
+      const { typeOfLogin, clientId, verifier } = verifierMap[authVerifier];
+
+ 
+
+      // 3. Trigger Login ==> opens the popup
+
+      const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerLogin({
+
+        typeOfLogin,
+
+        verifier,
+
+        clientId,
+
+        jwtParams,
+
+      });
+
+ 
+
+      // This was an attempt at using aggregate social logins but it hasn't worked
+
+ 
+
+      // const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerAggregateLogin({
+
+      //   AggregateLoginParams: {
+
+      //     aggregateVerifierType: "single_id_verifier",
+
+      //     verifierIdentifier: "tkey-google",
+
+      //     subVerifierDetailsArray: [
+
+      //       {
+
+      //         typeOfLogin,
+
+      //         verifier,
+
+      //         clientId,
+
+      //       },
+
+      //     ],
+
+      //   },
+
+      // });
+
+ 
+
+      // setConsoleText(loginResponse);
+
+    } catch (error) {
+
+      setConsoleText("Could Not Get The Social Provider Share")
+
+      console.log(error);
+
+    }
+
+  };
+
+ 
+
+  // Helper function to return the Visa share if the inputted Visa ID is correct.
+
+  const getVisaGuideShare = async () => {
+
+    appendConsoleText("Importing Share from Visa Guide...");
+
+    await popup("What is your Visa Guide ID?", {
+
+      content: "input" as any,
+
+    }).then(async (visaID) => {
+
+      if (visaID.length >= 5) {
+
+        await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(visaID);
+
+        appendConsoleText("Successfully Imported Share Using Visa Guide ID!");
+
+      } else {
+
+        popup("Error", "Visa Guide ID Must Be At Least 5 Characters", "error");
+
+      }
+
+    });
+
+  };
+
+ 
+
+  // If we have enough shares, this function provides the private key and other details.
+
+  const getTKeyDetails = async () => {
+
+    try {
+
+      setConsoleText("Tkey Details:");
+
+      // Get the private key
+
+      appendConsoleText("Private Key:");
+
+      appendConsoleText("0x" + tKey.privKey.toString('hex'));
+
+      const privateKey = tKey.privKey.toString('hex');
+
+ 
+
+      // Get the public key
+
+      const privateKeyToPublicKey = require('ethereum-private-key-to-public-key');
+
+      const publicKey = privateKeyToPublicKey(privateKey).toString('hex');
+
+      appendConsoleText("Here's Your Public Key:")
+
+      appendConsoleText(publicKey);
+
+ 
+
+      // Get the wallet address
+
+      const publicKeyToAddress = require('ethereum-public-key-to-address');
+
+      const walletAddr = publicKeyToAddress(publicKey);
+
+      appendConsoleText("Here's Your Wallet Address:")
+
+      appendConsoleText(walletAddr);
+
+ 
+
+      // Get the share info
+
+      appendConsoleText("Required Shares:");
+
+      appendConsoleText(tKey.getKeyDetails().requiredShares);
+
+      appendConsoleText("Threshold:");
+
+      appendConsoleText(tKey.getKeyDetails().threshold);
+
+      appendConsoleText("Total Shares:");
+
+      appendConsoleText(tKey.getKeyDetails().totalShares);
+
+      appendConsoleText("Share Descriptions:");
+
+      appendConsoleText(tKey.getKeyDetails().shareDescriptions);
+
+    } catch (error) {
+
+      setConsoleText("Failed Get The Key Details. May Have To Login/Reconstruct It First");
+
+      console.error(error);
+
+    }
+
+  };
+
+ 
+
+  // Not needed. Keeping for now.
+
+  const reconstructKey = async () => {
+
+    try {
+
+      console.log("Reconstructing Key");
+
+      setConsoleText("Reconstructing key");
+
+      let reconstructedKey = await tKey.reconstructKey();
+
+      appendConsoleText(reconstructedKey.privKey);
+
+    } catch (error) {
+
+      setConsoleText("Failed Reconstruct The Key");
+
+      console.error(error, "caught");
+
+    }
+
+  };
+
+ 
+
+  // Helper function for having multiple lines of text in the console
+
+  const appendConsoleText = (el: any) => {
+
+    const data = typeof el === "string" ? el : JSON.stringify(el);
+
+    setConsoleText((x: any) => x + "\n" + data);
+
+  };
+
+
+
+
+  // ************THE FOLLOWING ARE EXTRA FUNCTIONS TO TEST OUT:***************
+
+ 
+
+ 
+
+  const generateShares = () => {
+
+    var re = /[0-9A-Fa-f]*/g;
+
+    var keyToBeSplit = shareDetails.replaceAll('"', "");
+
+    if (keyToBeSplit.substring(0, 2) === "0x") {
+
+      keyToBeSplit = keyToBeSplit.substring(2);
+
+    }
+
+    if (re.test(keyToBeSplit)) {
+
+      setShareToggle("combine");
+
+      var shares = window.secrets.share(keyToBeSplit, total, threshold);
+
+      setShareDetails(shares.join("\n"));
+
+    } else {
+
+      popup("Please enter a valid hexadecimal number");
+
+    }
+
+  };
+
+ 
+
+  const combineShares = () => {
+
+    if (shareToggle === "combine") {
+
+      setShareToggle("split");
+
+    }
+
+    var comb = window.secrets.combine(shareDetails.split("\n"));
+
+    setShareDetails(comb);
+
+  };
+
+ 
+
+  const generateMnemonics = () => {
+
+    if (!validateMnemonic(mnemonics)) {
+
+      popup("Incorrect Mnemonic", "", "error");
+
+      setBIP39Seed("Incorrect Mnemonic");
+
+      setEntropy("Incorrect Mnemonic");
+
+      setPublicKey("Incorrect Mnemonic");
+
+      setPublicExtendedKey("Incorrect Mnemonic");
+
+      setPrivateKey("Incorrect Mnemonic");
+
+      setPrivateExtendedKey("Incorrect Mnemonic");
+
+    } else {
+
+      const bip39Seed = mnemonicToSeedSync(mnemonics).toString("hex");
+
+      const bip39entropy = mnemonicToEntropy(mnemonics);
+
+ 
+
+      setBIP39Seed(bip39Seed);
+
+      setEntropy(bip39entropy);
+
+      const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
+
+      setPublicKey(hd.publicKey.toString("hex"));
+
+      setPublicExtendedKey(hd.publicExtendedKey);
+
+      setPrivateKey(hd.privateKey.toString("hex"));
+
+      setPrivateExtendedKey(hd.privateExtendedKey);
+
+      setHDKey(hd);
+
+    }
+
+  };
+
+ 
+
+  const deriveAccount = () => {
+
+    const childHd = hdKey.derive(derivationPath);
+
+    setDerivedAccount("Private Key " + childHd.privateKey.toString("hex") + "\nPublic Key " + childHd.publicKey.toString("hex"));
+
+  };
+
+ 
+
+  const generateMnemonicsRandom = () => {
+
+    const bipMnemonic = generateMnemonic();
+
+    const bip39Seed = mnemonicToSeedSync(bipMnemonic).toString("hex");
+
+    const bip39entropy = mnemonicToEntropy(bipMnemonic);
+
+    setMnemonics(bipMnemonic);
+
+    setBIP39Seed(bip39Seed);
+
+    setEntropy(bip39entropy);
+
+    const hd = HDKey.fromMasterSeed(Buffer.from(bip39Seed, "hex"));
+
+    setPublicKey(hd.publicKey.toString("hex"));
+
+    setPublicExtendedKey(hd.publicExtendedKey);
+
+    setPrivateKey(hd.privateKey.toString("hex"));
+
+    setPrivateExtendedKey(hd.privateExtendedKey);
+
+    setHDKey(hd);
+
+  };
+
+ 
+
+  // ************THE FOLLOWING IS THE UI SET UP:***************
 
  
 
@@ -1494,11 +1895,11 @@ const App = function App() {
 
               <Row>
 
-                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}> */}
+                <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}>
 
-                <Col className="custom-btn" onClick={initializeAndReconstruct}>
+                {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
 
-                  Login With Device + Visa
+                  Login With Device + Visa 1
 
                 </Col>
 
@@ -1506,7 +1907,19 @@ const App = function App() {
 
               <Row>
 
-               <Col className="custom-btn" onClick={loginUsingDeviceAndProvider}>
+                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndGuide}> */}
+
+                <Col className="custom-btn" onClick={initializeAndReconstruct}>
+
+                  Login With Device + Visa 2
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={loginUsingDeviceAndProvider}>
 
                   Recover With Device + Provider
 
@@ -1560,9 +1973,29 @@ const App = function App() {
 
               <Row>
 
+                <Col className="custom-btn" onClick={RefreshResetDeviceShare}>
+
+                  Refresh/Reset Device Share
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={RefreshResetVisaShare}>
+
+                  Refresh/Reset Visa Share
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
                 <Col className="custom-btn" onClick={deleteDeviceShare}>
 
-                  Delete Lost Device Share & Refresh
+                  Delete Lost Device Share
 
                 </Col>
 
@@ -1572,7 +2005,7 @@ const App = function App() {
 
                 <Col className="custom-btn" onClick={deleteVisaShare}>
 
-                  Delete Lost Visa Share & Refresh
+                  Delete Lost Visa Share
 
                 </Col>
 
@@ -1582,13 +2015,13 @@ const App = function App() {
 
                 <Col className="custom-btn" onClick={deleteProviderShare}>
 
-                  Delete Lost Provider Share (Not Possible?)
+                  Delete Lost Provider Share
 
                 </Col>
 
               </Row>
 
-              <Row>
+              {/* <Row>
 
                 <Col className="custom-btn" onClick={generateNewShare}>
 
@@ -1596,13 +2029,13 @@ const App = function App() {
 
                 </Col>
 
-              </Row>
+              </Row> */}
 
               <Row>
 
                 <Col className="custom-btn" onClick={generateNewDeviceShare}>
 
-                  Generate New Device Share (In Progress)
+                  Generate New Device Share
 
                 </Col>
 
@@ -1626,7 +2059,7 @@ const App = function App() {
 
                 <Col>
 
-                  <h1>Share Transfers (Probably Not Needed)</h1>
+                  <h1>Share Transfers </h1>
 
                 </Col>
 
@@ -1670,7 +2103,7 @@ const App = function App() {
 
                 </Col>
 
-             </Row>
+              </Row>
 
             </Col>
 
@@ -1744,7 +2177,7 @@ const App = function App() {
 
             }}
 
-          />
+         />
 
         </div>
 
@@ -1882,7 +2315,7 @@ const App = function App() {
 
           </Row>
 
-         <Row>
+          <Row>
 
             <span style={{ width: "20%" }}>Private Key</span>
 
