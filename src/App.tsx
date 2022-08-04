@@ -446,7 +446,9 @@ const App = function App() {
         await tKey.initialize();
   
         appendConsoleText("Successfully Generated New Shares With Device And Provider");
+
   
+        // This is an internal function and should not technically be used, but I'm using it for testing.
         const res = await tKey._initializeNewKey({ initializeModules: true });
   
         console.log("response from _initializeNewKey", res);
