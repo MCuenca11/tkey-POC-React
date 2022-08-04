@@ -421,6 +421,8 @@ const App = function App() {
 
       await generateNewShareWithPassword();
 
+      await getTKeyDetails();
+
     } catch (error) {
 
       appendConsoleText("Failed To Inititialize New TKey");
@@ -452,6 +454,8 @@ const App = function App() {
         setShareDetails(res.privKey.toString("hex"));
   
         await generateNewShareWithPassword();
+
+        await getTKeyDetails();
   
       } catch (error) {
   
