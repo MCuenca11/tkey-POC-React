@@ -421,8 +421,6 @@ const App = function App() {
 
       await generateNewShareWithPassword();
 
-      // await getTKeyDetails();
-
     } catch (error) {
 
       appendConsoleText("Failed To Inititialize New TKey");
