@@ -874,25 +874,25 @@ const RefreshResetPasswordShare = async () => {
 
   // initialization. (Not sure)
 
-  const deleteProviderShare = async () => {
+  // const deleteProviderShare = async () => {
 
-    try {
+  //   try {
 
-      setConsoleText("Deleting Social Provider Share...");
+  //     setConsoleText("Deleting Social Provider Share...");
 
-      const indexes = tKey.getCurrentShareIndexes();
+  //     const indexes = tKey.getCurrentShareIndexes();
 
-      await tKey.deleteShare(indexes[0]);
+  //     await tKey.deleteShare(indexes[0]);
 
-      setConsoleText("Social Provider Share Deleted!");
+  //     setConsoleText("Social Provider Share Deleted!");
 
-    } catch (error) {
+  //   } catch (error) {
 
-      setConsoleText("Failed To Delete Social Provider Share");
+  //     setConsoleText("Failed To Delete Social Provider Share");
 
-    }
+  //   }
 
-  };
+  // };
 
  
 
@@ -1887,7 +1887,7 @@ const RefreshResetPasswordShare = async () => {
 
               </Row>
 
-              <Row>
+              {/* <Row>
 
                 <Col className="custom-btn" onClick={deleteProviderShare}>
 
@@ -1895,7 +1895,7 @@ const RefreshResetPasswordShare = async () => {
 
                 </Col>
 
-              </Row>
+              </Row> */}
 
               {/* <Row>
 
