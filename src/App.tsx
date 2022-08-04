@@ -862,7 +862,7 @@ const RefreshResetPasswordShare = async () => {
 
     } catch (error) {
 
-      appendConsoleText("Failed To Delete Password Share");
+      setConsoleText("Failed To Delete Password Share");
 
     }
 
