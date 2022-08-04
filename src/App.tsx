@@ -421,7 +421,7 @@ const App = function App() {
 
       await generateNewShareWithPassword();
 
-      await getTKeyDetails();
+      // await getTKeyDetails();
 
     } catch (error) {
 
@@ -527,20 +527,24 @@ const App = function App() {
     try {
 
       // await triggerSocialProviderLogin();
-
-      console.log("pass 0");
-
-      await tKey.initialize();
-
-      console.log("pass 1");
-
  
 
       setConsoleText("Getting The Local Device Share...");
 
       const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
 
+      await tKey.metadata
+
+      console.log("pass 0");
+
+      const deviceStore = await (tKey.modules.webStorage as WebStorageModule).getDeviceShare();
+
+      console.log("pass 1");
+
+      await tKey.initialize({withShare: deviceStore});
+
       await webStorageModule.inputShareFromWebStorage();
+      
 
       appendConsoleText("Successfully Acquired Device Share!");
 
@@ -976,6 +980,7 @@ const RefreshResetPasswordShare = async () => {
           await (tKey.modules.securityQuestions as SecurityQuestionsModule).generateNewShareWithSecurityQuestions(password, "What's Your Password?");
 
           appendConsoleText("Successfully Generated Share With Password!");
+          await getTKeyDetails();
 
         } else {
 
