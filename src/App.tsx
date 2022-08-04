@@ -419,12 +419,6 @@ const App = function App() {
 
       appendConsoleText("Successfully Generated New Shares With Device And Provider");
 
-      const res = await tKey._initializeNewKey({ initializeModules: true });
-
-      console.log("response from _initializeNewKey", res);
-
-      setShareDetails(res.privKey.toString("hex"));
-
       await generateNewShareWithPassword();
 
     } catch (error) {
@@ -437,6 +431,37 @@ const App = function App() {
 
   };
 
+    // Initializes key using social provider and device and then adds on security question share.
+
+    const resetTkey = async () => {
+
+      try {
+  
+        setConsoleText("Initializing a New Key Using Device, Provider, and Password Shares...");
+  
+        await triggerSocialProviderLogin();
+  
+        await tKey.initialize();
+  
+        appendConsoleText("Successfully Generated New Shares With Device And Provider");
+  
+        const res = await tKey._initializeNewKey({ initializeModules: true });
+  
+        console.log("response from _initializeNewKey", res);
+  
+        setShareDetails(res.privKey.toString("hex"));
+  
+        await generateNewShareWithPassword();
+  
+      } catch (error) {
+  
+        appendConsoleText("Failed To Inititialize New TKey");
+  
+        console.error(error, "caught");
+  
+      }
+  
+    };
  
 
   const loginUsingDeviceAndProvider = async () => {
@@ -1693,6 +1718,16 @@ const RefreshResetPasswordShare = async () => {
                 <Col className="custom-btn" onClick={initializeTkeyUsing3Shares}>
 
                   Create New TKey (3 Shares)
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={resetTkey}>
+
+                  Reset tKey (For Testing)
 
                 </Col>
 
