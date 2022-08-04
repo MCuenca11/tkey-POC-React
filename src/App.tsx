@@ -1302,25 +1302,25 @@ const RefreshResetPasswordShare = async () => {
 
       // Get the public key
 
-      // const privateKeyToPublicKey = require('ethereum-private-key-to-public-key');
+      const privateKeyToPublicKey = require('ethereum-private-key-to-public-key');
 
-      // const publicKey = privateKeyToPublicKey(privateKey).toString('hex');
+      const publicKey = privateKeyToPublicKey(privateKey).toString('hex');
 
-      appendConsoleText("Here's Your Public Key:")
+      appendConsoleText("Here's Your Public Key:");
 
-      // appendConsoleText(publicKey);
+      appendConsoleText(publicKey);
 
  
 
       // Get the wallet address
 
-      // const publicKeyToAddress = require('ethereum-public-key-to-address');
+      const publicKeyToAddress = require('ethereum-public-key-to-address');
 
-      // const walletAddr = publicKeyToAddress(publicKey);
+      const walletAddr = publicKeyToAddress(publicKey);
 
-      appendConsoleText("Here's Your Wallet Address:")
+      appendConsoleText("Here's Your Wallet Address:");
 
-      // appendConsoleText(walletAddr);
+      appendConsoleText(walletAddr);
 
  
 
@@ -1734,7 +1734,7 @@ const RefreshResetPasswordShare = async () => {
 
                 {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
 
-                  Login With Device + Password (Doesn't Work Yet)
+                  Login With Device + Password (Doesn't Work Yet)1
 
                 </Col>
 
@@ -1746,7 +1746,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col className="custom-btn" onClick={initializeAndReconstruct}>
 
-                  Login With Device + Password (Doesn't Work Yet)
+                  Login With Device + Password (Doesn't Work Yet)2
 
                 </Col>
 
