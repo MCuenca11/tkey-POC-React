@@ -996,24 +996,6 @@ const RefreshResetPasswordShare = async () => {
 
  
 
- 
-
-    const windowChange = async () => {
-
-      window.location.href = 'https://vls-api-qa/vls/lght/loginhint';
-
-    };
-
- 
-
-    const windowChange2 = async () => {
-
-      window.location.href = 'localhost3000';
-
-    };
-
- 
-
   // Not needed. Keeping for now.
 
   const refreshShares = async () => {
