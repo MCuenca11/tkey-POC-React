@@ -417,6 +417,8 @@ const App = function App() {
 
       await tKey.initialize();
 
+
+
       appendConsoleText("Successfully Generated New Shares With Device And Provider");
 
       await generateNewShareWithPassword();
@@ -526,31 +528,31 @@ const App = function App() {
 
       // await triggerSocialProviderLogin();
  
-
       setConsoleText("Getting The Local Device Share...");
 
       const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
 
-      await tKey.metadata
-
       console.log("pass 0");
 
-      const deviceStore = await (tKey.modules.webStorage as WebStorageModule).getDeviceShare();
+      const postboxKey = tKey.serviceProvider.postboxKey;
+
+      const shareStore: ShareStore = await tKey.storageLayer.getMetadata({ privKey: postboxKey });
+
+      // const deviceStore = await (tKey.modules.webStorage as WebStorageModule).getDeviceShare();
 
       console.log("pass 1");
 
-      await tKey.initialize({withShare: deviceStore});
+      await tKey.initialize({withShare: shareStore});
+
+      // await tKey.initialize({withShare: deviceStore});
 
       await webStorageModule.inputShareFromWebStorage();
       
-
       appendConsoleText("Successfully Acquired Device Share!");
 
       await getPasswordShare();
 
       appendConsoleText("Successfully Acquired Password Share!");
-
- 
 
       // Get the number of acquired shares to show the user
 
@@ -559,8 +561,6 @@ const App = function App() {
       // appendConsoleText(indexes);
 
       appendConsoleText("Number Of Acquired Shares: " + indexes.length);
-
- 
 
       // We have 2 of 3 shares so we can reconstruct the key
 
@@ -1222,8 +1222,6 @@ const RefreshResetPasswordShare = async () => {
 
       const { typeOfLogin, clientId, verifier } = verifierMap[authVerifier];
 
- 
-
       // 3. Trigger Login ==> opens the popup
 
       const loginResponse = await (tKey.serviceProvider as TorusServiceProvider).triggerLogin({
@@ -1237,6 +1235,7 @@ const RefreshResetPasswordShare = async () => {
         jwtParams,
 
       });
+      const postboxKey = tKey.serviceProvider.postboxKey.toString('hex');
 
  
 
