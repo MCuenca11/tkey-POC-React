@@ -1,4 +1,4 @@
-# tkey POC
+# Torus tKey POC
 
 ## To run the project locally:
 Clone the repo then run 
