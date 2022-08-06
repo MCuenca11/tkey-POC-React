@@ -61,12 +61,6 @@ declare global {
   }
 
 }
-
- 
-
-const clientId = "BC9mE4fQQ2Wmpjq0qioiZy3KQiqdhjisaBXLQ1XqxJsqKXqb1IJGhrGT50cE-6Ow1L9fHe6_m8c9tKjfnulh8jI";
-
-
  
 
 // These are the Torus supported verifiers:
@@ -341,9 +335,9 @@ const App = function App() {
 
   const [authVerifier, setAuthVerifier] = useState<string>("google");
 
-  const [consoleText, setConsoleText] = useState<any>("Output Will Appear Here. You Can Inspect The Page To Get More Details.");
+  const [consoleText, setConsoleText] = useState<any>("Output Will Appear Here. You Can Open The Developer Console By Inspecting The Page To Get More Details And Error Messages.");
 
-  const [derivedAccount, setDerivedAccount] = useState<any>("Output will appear here");
+  const [derivedAccount, setDerivedAccount] = useState<any>("The Private/Public Keys For Your Inputted Seed Phrase Based On The Selected Derivation Path Will Appear Here.");
 
   const [mnemonics, setMnemonics] = useState<any>("");
 
@@ -421,7 +415,7 @@ const App = function App() {
 
       appendConsoleText("Successfully Generated New Shares With Device And Provider");
 
-      await generateNewShareWithPassword();
+      await generateNewPasswordShare();
 
     } catch (error) {
 
@@ -455,7 +449,7 @@ const App = function App() {
   
         setShareDetails(res.privKey.toString("hex"));
   
-        await generateNewShareWithPassword();
+        await generateNewPasswordShare();
 
         await getTKeyDetails();
   
@@ -740,6 +734,12 @@ const App = function App() {
 
  
 
+
+/**
+
+* Combines deleteDeviceShare() and generateNewDeviceShare() into one button.
+
+*/
 const RefreshResetDeviceShare = async () => {
 
   try {
@@ -768,6 +768,11 @@ const RefreshResetDeviceShare = async () => {
 
  
 
+/**
+
+* Combines deletePasswordShare() and generateNewPasswordShare() into one button.
+
+*/
 const RefreshResetPasswordShare = async () => {
 
   try {
@@ -782,7 +787,7 @@ const RefreshResetPasswordShare = async () => {
 
     await tKey.syncLocalMetadataTransitions();
 
-    generateNewShareWithPassword();
+    generateNewPasswordShare();
 
     appendConsoleText("Successfully Generated New Password Share!");
 
@@ -818,13 +823,7 @@ const RefreshResetPasswordShare = async () => {
 
       const indexes = tKey.getCurrentShareIndexes();
 
-      // appendConsoleText(tKey.shares);
-
-      // appendConsoleText(indexes);
-
       await tKey.deleteShare(indexes[1]);
-
-      // appendConsoleText(indexes);
 
       appendConsoleText("Device Share Deleted! Please Refresh Page For Complete Share Deletion to Take Effect.");
 
@@ -962,8 +961,9 @@ const RefreshResetPasswordShare = async () => {
 
     // The private key remians the same.
 
-    const generateNewShareWithPassword = async () => {
+    const generateNewPasswordShare = async () => {
  
+      try {
 
       appendConsoleText("Generating New Share With Password...");
 
@@ -989,30 +989,11 @@ const RefreshResetPasswordShare = async () => {
         }
 
       });
-
-      // await getTKeyDetails();
-
-    };
-
- 
-
- 
-
-    const windowChange = async () => {
-
-      window.location.href = 'https://vls-api-qa/vls/lght/loginhint';
+    } catch (error) {
+      setConsoleText("Failed to Generate Share With Password. Check the developer console for more details.");
+    }
 
     };
-
- 
-
-    const windowChange2 = async () => {
-
-      window.location.href = 'localhost3000';
-
-    };
-
- 
 
   // Not needed. Keeping for now.
 
@@ -1482,19 +1463,19 @@ const RefreshResetPasswordShare = async () => {
 
     if (!validateMnemonic(mnemonics)) {
 
-      popup("Incorrect Mnemonic", "", "error");
+      popup("Invalid Seed Phrase", "", "error");
 
-      setBIP39Seed("Incorrect Mnemonic");
+      setBIP39Seed("Invalid Seed Phrase");
 
-      setEntropy("Incorrect Mnemonic");
+      setEntropy("Invalid Seed Phrase");
 
-      setPublicKey("Incorrect Mnemonic");
+      setPublicKey("Invalid Seed Phrase");
 
-      setPublicExtendedKey("Incorrect Mnemonic");
+      setPublicExtendedKey("Invalid Seed Phrase");
 
-      setPrivateKey("Incorrect Mnemonic");
+      setPrivateKey("Invalid Seed Phrase");
 
-      setPrivateExtendedKey("Incorrect Mnemonic");
+      setPrivateExtendedKey("Invalid Seed Phrase");
 
     } else {
 
@@ -1715,7 +1696,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col>
 
-                  <h1>Create/Get Private Key Or Login</h1>
+                  <h1>Create/Reset Private Key</h1>
 
                 </Col>
 
@@ -1771,13 +1752,15 @@ const RefreshResetPasswordShare = async () => {
 
               </Row>
 
+            </Col>
+
+            <Col>
+
               <Row>
 
-                <Col className="custom-btn" onClick={loginUsingDeviceAndPassword}>
+                <Col>
 
-                {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
-
-                  Login With Device + Password (Doesn't Work Yet)1
+                  <h1>Login/Recover </h1>
 
                 </Col>
 
@@ -1785,11 +1768,21 @@ const RefreshResetPasswordShare = async () => {
 
               <Row>
 
-                {/* <Col className="custom-btn" onClick={loginUsingDeviceAndPassword}> */}
+                <Col>
 
-                <Col className="custom-btn" onClick={initializeAndReconstruct}>
+                  <br></br>
 
-                  Login With Device + Password (Doesn't Work Yet)2
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={loginUsingDeviceAndPassword}>
+
+                {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
+
+                  Login With Device + Password (Doesn't Work Yet)
 
                 </Col>
 
@@ -1815,7 +1808,7 @@ const RefreshResetPasswordShare = async () => {
 
               </Row>
 
-            </Col>
+          </Col>
 
             <Col>
 
@@ -1829,7 +1822,7 @@ const RefreshResetPasswordShare = async () => {
 
               </Row>
 
-              <Row>
+              {/* <Row>
 
                 <Col>
 
@@ -1837,17 +1830,7 @@ const RefreshResetPasswordShare = async () => {
 
                 </Col>
 
-              </Row>
-
-              <Row>
-
-                <Col>
-
-                  <br></br>
-
-                </Col>
-
-              </Row>
+              </Row> */}
 
               <Row>
 
@@ -1873,7 +1856,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col className="custom-btn" onClick={deleteDeviceShare}>
 
-                  Delete Lost Device Share
+                  Delete Lost Device Share (For Testing)
 
                 </Col>
 
@@ -1883,7 +1866,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col className="custom-btn" onClick={deletePasswordShare}>
 
-                  Delete Lost Password Share
+                  Delete Lost Password Share (For Testing)
 
                 </Col>
 
@@ -1913,7 +1896,7 @@ const RefreshResetPasswordShare = async () => {
 
                 <Col className="custom-btn" onClick={generateNewDeviceShare}>
 
-                  Generate New Device Share
+                  Generate New Device Share (For Testing)
 
                 </Col>
 
@@ -1921,63 +1904,9 @@ const RefreshResetPasswordShare = async () => {
 
               <Row>
 
-                <Col className="custom-btn" onClick={generateNewShareWithPassword}>
+                <Col className="custom-btn" onClick={generateNewPasswordShare}>
 
-                  Generate New Password Share
-
-                </Col>
-
-              </Row>
-
-            </Col>
-
-            <Col>
-
-              <Row>
-
-                <Col>
-
-                  <h1>Share Transfers (Not Needed?) </h1>
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={checkShareRequests}>
-
-                  Check Share Requests
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={requestShare}>
-
-                  Request Share
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={approveShareRequest}>
-
-                  Approve Request
-
-                </Col>
-
-              </Row>
-
-              <Row>
-
-                <Col className="custom-btn" onClick={resetShareRequests}>
-
-                  Reset Share Request
+                  Generate New Password Share (For Testing)
 
                 </Col>
 
@@ -1986,6 +1915,8 @@ const RefreshResetPasswordShare = async () => {
             </Col>
 
           </Row>
+
+          
 
           <h1>Output</h1>
 
@@ -2003,6 +1934,152 @@ const RefreshResetPasswordShare = async () => {
 
           </Row>
 
+          <br></br>
+
+          <h1>Seed Phrases</h1>
+
+          {mnemonics.length === 0 ? (
+
+            <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonicsRandom}>
+
+              Generate Random Seed Phrase/Use Existing Seed Phrase
+
+            </button>
+
+          ) : (
+
+            <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonics}>
+
+              Generate Using Seed Phrase
+
+            </button>
+
+          )}
+
+
+
+          <Table>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>BIP39 Seed Phrase</span>
+
+              <Col>
+
+                <input
+
+                  style={{ width: "100%" }}
+
+                  value={mnemonics}
+
+                  onChange={(e) => setMnemonics(e.currentTarget.value)}
+
+                  placeholder="Leave Empty To Use Random Seed Phrase Or Input Your Own"></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>BIP39 Seed</span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={bip39Seed} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>Entropy</span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={entropy} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>Public Key</span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={publicKey} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>Extended Public Key </span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={publicExtendedKey} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>Private Key</span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={privateKey} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <Row>
+
+              <span style={{ width: "20%" }}>Extended Private Key </span>
+
+              <Col>
+
+                <input style={{ width: "100%" }} value={privateExtendedKey} readOnly></input>
+
+              </Col>
+
+            </Row>
+
+            <br></br>
+
+            <h4>BIP32 Derivation Path</h4>
+
+            <Col>
+
+              <input
+
+                style={{ width: "20%", textAlign: "center" }}
+
+                value={derivationPath}
+
+                onChange={(e) => setDerivationPath(e.currentTarget.value)}></input>
+
+            </Col>
+
+            <button className="custom-btn" onClick={deriveAccount}>
+
+              Derive
+
+            </button>
+
+            <textarea style={{ width: "100%", height: "8vh" }} value={derivedAccount} readOnly></textarea>
+
+          </Table>
+
+          <br></br>
+
           <h1>The Following Is For Playing Around/Testing And Is Not Directly Related To The POC</h1>
 
           <Row>
@@ -2014,6 +2091,50 @@ const RefreshResetPasswordShare = async () => {
             </Col>
 
           </Row>
+
+        <br></br>
+
+              <Row>
+
+                <Col>
+
+                  <h1>Share Transfers </h1>
+
+                </Col>
+
+              </Row>
+
+              <Row>
+
+                <Col className="custom-btn" onClick={checkShareRequests}>
+
+                  Check Requests
+
+                </Col>
+
+                <Col className="custom-btn" onClick={requestShare}>
+
+                  Request Share
+
+                </Col>
+
+                <Col className="custom-btn" onClick={approveShareRequest}>
+
+                  Approve Request
+
+                </Col>
+
+                <Col className="custom-btn" onClick={resetShareRequests}>
+
+                  Reset Request
+
+                </Col>
+
+              </Row>
+
+          <br></br>
+
+          <br></br>
 
         <h1>Secret Sharing</h1>
 
@@ -2061,7 +2182,7 @@ const RefreshResetPasswordShare = async () => {
 
         <br></br>
 
-        {shareToggle === "split" ? <h4> Private Key (hex format) Below</h4> : <h4>Private Key Split Into {total} Shares</h4>}
+        {shareToggle === "split" ? <h4> Input Private Key (Hex Format) Below</h4> : <h4>Private Key Split Into {total} Shares</h4>}
 
         {shareToggle === "split" ? (
 
@@ -2099,153 +2220,11 @@ const RefreshResetPasswordShare = async () => {
 
         )}
 
-                <br></br>
-
-        <h1>Mnemonics</h1>
-
-        {mnemonics.length === 0 ? (
-
-          <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonicsRandom}>
-
-            Generate Random Mnemonics
-
-          </button>
-
-        ) : (
-
-          <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonics}>
-
-            Generate Using Mnemonic
-
-          </button>
-
-        )}
-
- 
-
-        <Table>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>BIP39 Mnemonic</span>
-
-            <Col>
-
-              <input
-
-                style={{ width: "100%" }}
-
-                value={mnemonics}
-
-                onChange={(e) => setMnemonics(e.currentTarget.value)}
-
-                placeholder="Insert Mnemonic or Generate Random Mnemonic"></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>BIP39 Seed</span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={bip39Seed} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>Entropy</span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={entropy} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>Public Key</span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={publicKey} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>Extended Public Key </span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={publicExtendedKey} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>Private Key</span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={privateKey} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <Row>
-
-            <span style={{ width: "20%" }}>Extended Private Key </span>
-
-            <Col>
-
-              <input style={{ width: "100%" }} value={privateExtendedKey} readOnly></input>
-
-            </Col>
-
-          </Row>
-
-          <br></br>
-
-          <h4>BIP32 Derivation Path</h4>
-
-          <Col>
-
-            <input
-
-              style={{ width: "20%", textAlign: "center" }}
-
-              value={derivationPath}
-
-              onChange={(e) => setDerivationPath(e.currentTarget.value)}></input>
-
-          </Col>
-
-          <button className="custom-btn" onClick={deriveAccount}>
-
-            Derive
-
-          </button>
-
-          <textarea style={{ width: "100%", height: "8vh" }} value={derivedAccount} readOnly></textarea>
-
-        </Table>
-
       </div>
 
     </div>
+
+    
 
   );
 
