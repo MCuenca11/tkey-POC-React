@@ -45,7 +45,7 @@ import jwt_decode , { JwtPayload } from "jwt-decode";
 // var unirest = require("unirest");
 
 // import { OpenloginAdapter } from "@web3auth/openlogin-adapter";
-
+ 
 // import { Web3Auth } from "@web3auth/web3auth";
 
 // import TorusSdk from "@toruslabs/torus-direct-web-sdk";
@@ -1950,7 +1950,7 @@ const RefreshResetPasswordShare = async () => {
 
             <button className="custom-btn" style={{ width: "auto" }} onClick={generateMnemonics}>
 
-              Generate Using Seed Phrase
+              Seed Phrase Used To Derive The Details Below:
 
             </button>
 
