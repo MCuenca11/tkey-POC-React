@@ -546,8 +546,6 @@ const App = function App() {
 
       await getPasswordShare();
 
-      appendConsoleText("Successfully Acquired Password Share!");
-
       // Get the number of acquired shares to show the user
 
       const indexes = tKey.getCurrentShareIndexes();
@@ -585,8 +583,6 @@ const App = function App() {
       appendConsoleText("Successfully Acquired Social Provider Share!");
 
       await getPasswordShare();
-
-      appendConsoleText("Successfully Acquired Password Share!");
 
  
 
@@ -1268,7 +1264,7 @@ const RefreshResetPasswordShare = async () => {
 
   const getPasswordShare = async () => {
 
-    appendConsoleText("Importing Share from Password...");
+    appendConsoleText("Acquiring Share Using Password...");
 
     await popup("What is your password?", {
 
@@ -1280,8 +1276,8 @@ const RefreshResetPasswordShare = async () => {
 
         await (tKey.modules.securityQuestions as SecurityQuestionsModule).inputShareFromSecurityQuestions(password);
 
-        appendConsoleText("Successfully Imported Share Using Password!");
-
+        appendConsoleText("Successfully Acquired Password Share!");
+        
       } else {
 
         popup("Error", "Password Must Be At Least 5 Characters", "error");
