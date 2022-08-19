@@ -6,7 +6,7 @@ import "./App.css";
 
 import ThresholdKey from "@tkey/default";
 
-import WebStorageModule, { WEB_STORAGE_MODULE_NAME } from "@tkey/web-storage";
+import WebStorageModule, { getShareFromLocalStorage, WEB_STORAGE_MODULE_NAME } from "@tkey/web-storage";
 
 import TorusServiceProvider from "@tkey/service-provider-torus";
 
@@ -407,15 +407,23 @@ const App = function App() {
 
       setConsoleText("Initializing a New Key Using Device, Provider, and Password Shares...");
 
+      // Use the selected provider to login and create a share
+
       await triggerSocialProviderLogin();
+
+      // Set up the device share and use it and the social provider share to create the key
 
       await tKey.initialize();
 
-
-
       appendConsoleText("Successfully Generated New Shares With Device And Provider");
 
+      await storeLatestDeviceShareKeyInLocalStorage(tKey.getMetadata().pubKey.x.toString('hex'));
+
+      // Add the security question share to the key
+
       await generateNewPasswordShare();
+
+      await getTKeyDetails();
 
     } catch (error) {
 
@@ -435,6 +443,8 @@ const App = function App() {
   
         setConsoleText("Initializing a New Key Using Device, Provider, and Password Shares...");
   
+        // Use the selected provider to login and create a share
+
         await triggerSocialProviderLogin();
   
         await tKey.initialize();
@@ -446,9 +456,13 @@ const App = function App() {
         const res = await tKey._initializeNewKey({ initializeModules: true });
   
         console.log("response from _initializeNewKey", res);
+
+        await storeLatestDeviceShareKeyInLocalStorage(tKey.getMetadata().pubKey.x.toString('hex'));
   
         setShareDetails(res.privKey.toString("hex"));
   
+        // Add the security question share to the key
+
         await generateNewPasswordShare();
 
         await getTKeyDetails();
@@ -519,26 +533,12 @@ const App = function App() {
   const loginUsingDeviceAndPassword = async () => {
 
     try {
-
-      // await triggerSocialProviderLogin();
  
       setConsoleText("Getting The Local Device Share...");
 
-      const webStorageModule = tKey.modules["webStorage"] as WebStorageModule;
+      const deviceStore = await getLatestDeviceShareFromLocalStorage();
 
-      console.log("pass 0");
-
-      const postboxKey = tKey.serviceProvider.postboxKey;
-
-      const shareStore: ShareStore = await tKey.storageLayer.getMetadata({ privKey: postboxKey });
-
-      // const deviceStore = await (tKey.modules.webStorage as WebStorageModule).getDeviceShare();
-
-      console.log("pass 1");
-
-      await tKey.initialize({withShare: shareStore});
-
-      // await tKey.initialize({withShare: deviceStore});
+      await tKey.initialize({withShare: deviceStore});
 
       await webStorageModule.inputShareFromWebStorage();
       
@@ -551,8 +551,6 @@ const App = function App() {
       // Get the number of acquired shares to show the user
 
       const indexes = tKey.getCurrentShareIndexes();
-
-      // appendConsoleText(indexes);
 
       appendConsoleText("Number Of Acquired Shares: " + indexes.length);
 
@@ -1404,6 +1402,20 @@ const RefreshResetPasswordShare = async () => {
 
   };
 
+  const storeLatestDeviceShareKeyInLocalStorage = async (key: string): Promise<void> => {
+    window.localStorage.setItem('latestDeviceShareKey', key);
+  }
+
+  const getLatestDeviceShareFromLocalStorage = async (): Promise<ShareStore> => {
+    const foundDeviceKey = window.localStorage.getItem('latestDeviceShareKey');
+    if (foundDeviceKey != null) {
+      return getShareFromLocalStorage(foundDeviceKey);
+    }
+    throw Error;
+  }
+
+
+
 
 
 
@@ -1782,7 +1794,7 @@ const RefreshResetPasswordShare = async () => {
 
                 {/* <Col className="custom-btn" onClick={initializeAndReconstruct}> */}
 
-                  Login With Device + Password (Doesn't Work Yet)
+                  Login With Device + Password
 
                 </Col>
 
