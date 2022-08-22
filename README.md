@@ -28,4 +28,19 @@ Most general messages will appear in the UI output console. You can open the dev
 
 
 ### Returning User
+#### Create/Reset Private Key Column:
+* If you have already created a key and you want to make a new one for testing, you can use the "Reset tKey" button to do this without conflicts due to the previous private key.
+* Once you have logged in, you have some time to press the "Get Private Key/Details" button to get your private key, public key, wallet address, and share information.
+
+
+#### Login/Recover Column:
+* Since you only need 2 of the 3 shares to get your pivate key, you have 3 options to get it:
+* 1) Using the device and password shares:
+* 2) Using the device and social provider shares:
+* 3) Using the password and social provider shares:
+
+#### Refresh Lost Shares Column:
+* If a share was lost or compromised, you need to make the compromised share invalid, set up a new share, and refresh the 2 good shares while keeping the same private key.
+* To do this, use the "Refresh/Reset ___ Share" button for the compromised share. (Can't be done for the social provider with this code).
+* Or you can click the delete share button follwed by the generate new share button for the compromised share. Doing this allows you to check the tkey details while the process is happening. The "Refresh/Reset ___ Share" buttons do both of these steps in one.
 
